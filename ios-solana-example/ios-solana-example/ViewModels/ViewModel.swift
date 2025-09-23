@@ -18,10 +18,18 @@ class ViewModel: ObservableObject {
     
     func initilize() {
         Task {
-            web3AuthHelper = Web3AuthHelper()
-            try await web3AuthHelper.initialize()
-            DispatchQueue.main.async {
-                self.isUserAuthenticated = self.web3AuthHelper.isUserAuthenticated()
+            do {
+                web3AuthHelper = Web3AuthHelper()
+                try await web3AuthHelper.initialize()
+                DispatchQueue.main.async {
+                    self.isUserAuthenticated = self.web3AuthHelper.isUserAuthenticated()
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.isErrorAvailable = true
+                    self.error = error.localizedDescription
+                }
+                print("Initialization error: \(error)")
             }
         }
     }
