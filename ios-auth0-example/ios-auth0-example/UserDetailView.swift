@@ -11,7 +11,7 @@ struct UserDetailView: View {
         if let user = viewModel.user {
             List {
                 Section {
-                    Text("\(user.privKey ?? "")")
+                    Text("\(viewModel.privateKey)")
                 } header: {
                     Text("Private key")
                 }
@@ -33,8 +33,8 @@ struct UserDetailView: View {
                     Text("Public key")
                 }
                 Section {
-                    Text("Name \(user.userInfo?.name ?? "")")
-                    Text("Email \(user.userInfo?.email ?? "")")
+                    Text("Name \(viewModel.userInfo?.name ?? "")")
+                    Text("Email \(viewModel.userInfo?.email ?? "")")
                 }
                 header: {
                     Text("User Info")
