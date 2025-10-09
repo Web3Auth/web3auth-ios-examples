@@ -1,17 +1,28 @@
 import Foundation
+import web3
 import Web3Auth
+import FetchNodeDetails
 import FirebaseCore
 import FirebaseAuth
 
 class ViewModel: ObservableObject {
     var web3Auth: Web3Auth?
     @Published var loggedIn: Bool = false
-    @Published var user: Web3AuthState?
+    @Published var user: Web3AuthResponse?
     @Published var isLoading = false
+    @Published var isAuthenticating = false
     @Published var navigationTitle: String = ""
-    private var clientId = "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiAZOTEBtTXw4tsluTITPqA8zMsfxIKMjiqNQ"
-    private var network: Network = .sapphire_mainnet
-    private var loginParams: W3ALoginParams!
+    @Published var privateKey: String = ""
+    @Published var ed25519PrivKey: String = ""
+    @Published var userInfo: Web3AuthUserInfo?
+    @Published var showError: Bool = false
+    var errorMessage: String = ""
+    private var clientID: String = "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiAZOTEBtTXw4tsluTITPqA8zMsfxIKMjiqNQ"
+    private var redirectUrl: String = "web3auth.ios-firebase-example://auth"
+    private var web3AuthNetwork: Web3AuthNetwork = .SAPPHIRE_MAINNET
+    private var buildEnv: BuildEnv = .production
+    private var useCoreKit: Bool = false
+    private var loginParams: LoginParams?
     
     func setup() async throws {
         guard web3Auth == nil else { return }
@@ -20,153 +31,210 @@ class ViewModel: ObservableObject {
             navigationTitle = "Loading"
         })
         
-        web3Auth = try await Web3Auth(W3AInitParams(
-            clientId: clientId,
-            network: network,
-            redirectUrl: "web3auth.ios-firebase-example://auth",
-            loginConfig: [
-                TypeOfLogin.jwt.rawValue:
-                        .init(
-                            verifier: "w3a-firebase-demo",
-                            typeOfLogin: .jwt,
-                            clientId: self.clientId
-                        )
-            ],
-            mfaSettings: MfaSettings(
-                deviceShareFactor: MfaSetting(enable: true, priority: 1),
-                backUpShareFactor: MfaSetting(enable: true, priority: 2),
-                socialBackupFactor: MfaSetting(enable: true, priority: 3),
-                passwordFactor: MfaSetting(enable: true, priority: 4)
-            ),
-            // 259200 allows user to stay authenticated for 3 days with Web3Auth.
-            // Default is 86400, which is 1 day.
-            sessionTime: 259200
-            
-            
+        // Configure Firebase connection
+        let authConfig = [
+            AuthConnectionConfig(
+                authConnectionId: "w3a-firebase-demo",
+                authConnection: .CUSTOM,
+                clientId: clientID
+            )
+        ]
+        
+        web3Auth = try await Web3Auth(options: .init(
+            clientId: clientID,
+            redirectUrl: redirectUrl,
+            authBuildEnv: buildEnv,
+            authConnectionConfig: authConfig,
+            sessionTime: 259200,
+            web3AuthNetwork: web3AuthNetwork,
+            useSFAKey: useCoreKit
         ))
         
-        loginParams = try await prepareLoginParams()
         await MainActor.run(body: {
-            if self.web3Auth?.state != nil {
-                user = web3Auth?.state
+            if self.web3Auth?.web3AuthResponse != nil {
+                handleUserDetails()
                 loggedIn = true
             }
             isLoading = false
             navigationTitle = loggedIn ? "UserInfo" : "SignIn"
         })
     }
+
+    @MainActor func handleUserDetails() {
+        do {
+            loggedIn = true
+            user = try web3Auth?.getWeb3AuthResponse()
+            privateKey = ((web3Auth?.getPrivateKey() != "") ? web3Auth?.getPrivateKey() : try web3Auth?.getWeb3AuthResponse().factorKey) ?? ""
+            ed25519PrivKey = web3Auth?.getEd25519PrivateKey() ?? ""
+            userInfo = try web3Auth?.getUserInfo()
+        } catch {
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
     
-    func launchWalletServices() {
+    @MainActor func launchWalletServices() {
         Task {
             do {
-                try await web3Auth!.launchWalletServices(
-                    chainConfig: ChainConfig(
-                        chainId: "0xaa36a7",
-                        rpcTarget: "https://eth-sepolia.public.blastapi.io"
-                    )
-                )
+                try await web3Auth?.showWalletUI()
             } catch {
-                print(error.localizedDescription)
+                errorMessage = error.localizedDescription
+                showError = true
             }
         }
     }
     
-    func enableMFA() {
+    @MainActor func enableMFA() {
         Task {
             do {
-                loginParams = try await prepareLoginParams()
-                _ = try await self.web3Auth?.enableMFA(prepareLoginParams())
-                
+                _ = try await self.web3Auth?.enableMFA()
             } catch {
-                print(error.localizedDescription)
+                errorMessage = error.localizedDescription
+                showError = true
             }
         }
     }
     
-    func request(signature: @escaping(String) -> ()) {
+    @MainActor func manageMFA() {
         Task {
             do {
+                _ = try await self.web3Auth?.manageMFA()
+            } catch {
+                errorMessage = error.localizedDescription
+                showError = true
+            }
+        }
+    }
+    
+    @MainActor func request() {
+        Task {
+            do {
+                let key = self.web3Auth!.getPrivateKey()
+                let pk = try KeyUtil.generatePublicKey(from: Data(hexString: key) ?? Data())
+                let pkAddress = KeyUtil.generateAddress(from: pk).asString()
+                let checksumAddress = EthereumAddress(pkAddress).toChecksumAddress()
                 var params = [Any]()
-                let address: String? = Web3RPC(
-                    user: web3Auth!.state!
-                )?.address.toChecksumAddress()
                 params.append("Hello, Web3Auth from iOS!")
-                params.append(
-                    address!
-                )
-                
+                params.append(checksumAddress)
                 params.append("Web3Auth")
-                
-                let result = try await self.web3Auth?.request(
-                    chainConfig: ChainConfig(
-                        chainId: "0x89",
-                        rpcTarget: "https://polygon.llamarpc.com"
-                    ),
-                    method: "personal_sign",
-                    requestParams: params
-                )
-                
-                if result!.success {
-                    signature(result!.result!)
+                let signResponse = try await self.web3Auth?.request(method: "personal_sign", requestParams: params)
+                if let response = signResponse {
+                    print("Sign response received: \(response)")
                 } else {
-                    signature(result!.error!)
+                    print("No sign response received.")
                 }
             } catch {
-                print(error.localizedDescription)
+                errorMessage = error.localizedDescription
+                showError = true
             }
         }
     }
     
     func loginViaFirebaseEP() {
+        // Prevent concurrent logins which can cause continuation misuse
+        guard !isAuthenticating else { return }
+        isAuthenticating = true
         Task{
             do {
-                let res = try await Auth.auth().signIn(withEmail: "custom+id_token@firebase.login", password: "Welcome@W3A")
-                self.loginParams = try await prepareLoginParams()
-                let result = try await web3Auth?.login(loginParams)
-                await MainActor.run(body: {
-                    user = result
-                    loggedIn = true
-                })
+                // Firebase sign-in to obtain fresh ID token
+                _ = try await Auth.auth().signIn(withEmail: "custom+id_token@firebase.login", password: "Welcome@W3A")
+
+                // Build fresh login params per invocation
+                let params = try await prepareLoginParams()
+
+                // Ensure Web3Auth is initialized
+                guard let web3Auth = web3Auth else {
+                    throw NSError(domain: "Web3Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Web3Auth not initialized"])
+                }
+
+                _ = try await web3Auth.login(loginParams: params)
+                await handleUserDetails()
                 
             } catch let error {
                 print("Error: ", error)
+                await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                    self.showError = true
+                }
+            }
+            await MainActor.run {
+                self.isAuthenticating = false
+            }
+        }
+    }
+
+    func loginWithGoogle() {
+        // Prevent concurrent logins
+        guard !isAuthenticating else { return }
+        isAuthenticating = true
+        Task {
+            do {
+                // Ensure Web3Auth is initialized
+                guard let web3Auth = web3Auth else {
+                    throw NSError(domain: "Web3Auth", code: -1, userInfo: [NSLocalizedDescriptionKey: "Web3Auth not initialized"])
+                }
+                // Direct Google login via Web3Auth
+                _ = try await web3Auth.login(loginParams: LoginParams(
+                    authConnection: .GOOGLE,
+                    mfaLevel: .DEFAULT,
+                    curve: .SECP256K1
+                ))
+                await handleUserDetails()
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = error.localizedDescription
+                    self.showError = true
+                }
+            }
+            await MainActor.run {
+                self.isAuthenticating = false
             }
         }
     }
     
-    private func prepareLoginParams() async throws -> W3ALoginParams {
+    private func prepareLoginParams() async throws -> LoginParams {
         let idToken = try await Auth.auth().currentUser?.getIDTokenResult(forcingRefresh: true)
         
-        return W3ALoginParams(
-            loginProvider: .JWT,
-            dappShare: nil,
-            extraLoginOptions: ExtraLoginOptions(display: nil, prompt: nil, max_age: nil, ui_locales: nil, id_token_hint: nil, id_token: idToken?.token, login_hint: nil, acr_values: nil, scope: nil, audience: nil, connection: nil, domain: nil, client_id: nil, redirect_uri: nil, leeway: nil, verifierIdField: "sub", isVerifierIdCaseSensitive: nil, additionalParams: nil),
-            mfaLevel: .NONE,
+        return LoginParams(
+            authConnection: .CUSTOM,
+            authConnectionId: "w3a-firebase-demo",
+            mfaLevel: .DEFAULT,
+            extraLoginOptions: ExtraLoginOptions(
+                display: nil, prompt: nil, max_age: nil, ui_locales: nil,
+                id_token_hint: nil, id_token: idToken?.token, login_hint: nil,
+                acr_values: nil, scope: nil, audience: nil, connection: nil,
+                domain: nil, client_id: nil, redirect_uri: nil, leeway: nil,
+                userIdField: "sub", isUserIdCaseSensitive: nil, additionalParams: nil
+            ),
             curve: .SECP256K1
         )
     }
     
-    func logout() async throws {
-        try  await web3Auth?.logout()
-        
-        await MainActor.run(body: {
-            loggedIn.toggle()
-        })
+    @MainActor func logout() {
+        Task {
+            do {
+                try await web3Auth?.logout()
+                loggedIn = false
+            } catch {
+                errorMessage = error.localizedDescription
+                showError = true
+            }
+        }
     }
     
     
 }
 
 extension ViewModel {
-    func showResult(result: Web3AuthState) {
+    func showResult(result: Web3AuthResponse) {
         print("""
         Signed in successfully!
-            Private key: \(result.privKey ?? "")
-                Ed25519 Private key: \(result.ed25519PrivKey ?? "")
+            Private key: \(result.privateKey ?? "")
+                Ed25519 Private key: \(result.ed25519PrivateKey ?? "")
             User info:
                 Name: \(result.userInfo?.name ?? "")
                 Profile image: \(result.userInfo?.profileImage ?? "N/A")
-                Type of login: \(result.userInfo?.typeOfLogin ?? "")
+                AuthConnection: \(result.userInfo?.authConnection ?? "")
         """)
     }
 }

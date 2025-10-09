@@ -10,10 +10,10 @@ struct UserDetailView: View {
     @State private var signature = ""
     
     var body: some View {
-        if let user = viewModel.user {
+        if viewModel.loggedIn {
             List {
                 Section {
-                    Text("\(user.privKey ?? "")")
+                    Text("\(viewModel.privateKey)")
                 } header: {
                     Text("Private key")
                 }
@@ -35,8 +35,8 @@ struct UserDetailView: View {
                     Text("Public key")
                 }
                 Section {
-                    Text("Name \(user.userInfo?.name ?? "")")
-                    Text("Email \(user.userInfo?.email ?? "")")
+                    Text("Name \(viewModel.userInfo?.name ?? "")")
+                    Text("Email \(viewModel.userInfo?.email ?? "")")
                 }
             header: {
                 Text("User Info")
@@ -89,7 +89,7 @@ struct UserDetailView: View {
                     Button {
                         viewModel.launchWalletServices()
                     } label: {
-                        Text("Launch Wallet Services")
+                        Text("Show Wallet UI")
                     }
                     
                     Button {
@@ -99,16 +99,15 @@ struct UserDetailView: View {
                     }
                     
                     Button {
-                        viewModel.request{
-                            result in
-                            self.signature = result
-                        }
+                        viewModel.manageMFA()
                     } label: {
-                        Text("Request Signature")
+                        Text("Manage MFA")
                     }
                     
-                    if(!signature.isEmpty) {
-                        Text(signature)
+                    Button {
+                        viewModel.request()
+                    } label: {
+                        Text("Request Signature")
                     }
                     
                 }
@@ -116,15 +115,7 @@ struct UserDetailView: View {
                 
                 Section {
                     Button {
-                        Task.detached {
-                            do {
-                                try await viewModel.logout()
-                            } catch {
-                                DispatchQueue.main.async {
-                                    showingAlert = true
-                                }
-                            }
-                        }
+                        viewModel.logout()
                     } label: {
                         Text("Logout")
                             .foregroundColor(.red)
