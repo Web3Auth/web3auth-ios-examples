@@ -2,6 +2,15 @@
   "originHash" : "7cbb23c8504bf7142e6a373dc1e1a829954d2e18d5df31faae1d2304660f8792",
   "pins" : [
     {
+      "identity" : "analytics-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/segmentio/analytics-swift.git",
+      "state" : {
+        "revision" : "f604cef21bb7269f76136c68bd664c6c993f8e28",
+        "version" : "1.9.1"
+      }
+    },
+    {
       "identity" : "bigint",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/attaswift/BigInt",
@@ -38,6 +47,15 @@
       }
     },
     {
+      "identity" : "jsonsafeencoding-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/segmentio/jsonsafeencoding-swift.git",
+      "state" : {
+        "revision" : "af6a8b360984085e36c6341b21ecb35c12f47ebd",
+        "version" : "2.0.0"
+      }
+    },
+    {
       "identity" : "jwtdecode.swift",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/auth0/JWTDecode.swift.git",
@@ -71,6 +89,15 @@
       "state" : {
         "revision" : "de18a6b3d98f67b3c77f84ebab73f7a51807a503",
         "version" : "6.1.0"
+      }
+    },
+    {
+      "identity" : "sovran-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/segmentio/sovran-swift.git",
+      "state" : {
+        "revision" : "24867f3e4ac62027db9827112135e6531b6f4051",
+        "version" : "1.1.2"
       }
     },
     {
@@ -177,8 +204,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Web3Auth/web3auth-swift-sdk/",
       "state" : {
-        "branch" : "feat/auth_service_v10_changes",
-        "revision" : "c43ab8ab6e9c4051de371db819f1cc18b3d91746"
+        "revision" : "58d147d2ccbc50add1ca7c55d5e3ff7f7dbf3e29",
+        "version" : "12.0.0"
       }
     },
     {
