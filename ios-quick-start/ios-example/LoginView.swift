@@ -23,7 +23,7 @@ struct LoginView: View {
 
             Button(
                 action: {
-                    vm.loginEmailPasswordless(provider: .EMAIL_PASSWORDLESS, email: emailInput)
+                    vm.loginEmailPasswordless(email: emailInput)
                 },
                 label: {
                     Text("Sign In with Email Passwordless")
@@ -54,7 +54,7 @@ struct LoginView: View {
 
             Button(
                 action: {
-                    vm.login(provider: .GOOGLE)
+                    vm.login(authConnection: .GOOGLE)
                 },
                 label: {
                     Text("Sign In with Google")
@@ -70,7 +70,7 @@ struct LoginView: View {
 
             Button(
                 action: {
-                    vm.login(provider: .APPLE)
+                    vm.login(authConnection: .APPLE)
                 },
                 label: {
                     Text("Sign In with Apple")

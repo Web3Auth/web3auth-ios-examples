@@ -8,12 +8,12 @@ struct UserDetailView: View {
     @StateObject var viewModel: ViewModel
 
     var body: some View {
-        if let user = viewModel.user {
+        if viewModel.loggedIn {
             List {
                 // IMP START - Get User Info
                 Section(header: Text("User Information")) {
-                    Text("Name: \(user.userInfo?.name ?? "")")
-                    Text("Email: \(user.userInfo?.email ?? "")")
+                    Text("Name: \(viewModel.userInfo?.name ?? "")")
+                    Text("Email: \(viewModel.userInfo?.email ?? "")")
                 }
                 // IMP END - Get User Info
 
@@ -64,23 +64,13 @@ struct UserDetailView: View {
                 }
                 if isPrivateKeySectionVisible {
                     Section(header: Text("Private Key")) {
-                        Text("\(user.privKey ?? "")")
+                        Text("\(viewModel.privateKey)")
                     }
                 }
 
                 Section {
                     Button {
-                        Task.detached {
-                            do {
-                              
-                                try await viewModel.logout()
-                               
-                            } catch {
-                                DispatchQueue.main.async {
-                                    showingAlert = true
-                                }
-                            }
-                        }
+                        viewModel.logout()
                     } label: {
                         Label("Logout", systemImage: "arrow.left.square.fill")
                             .foregroundColor(.red)

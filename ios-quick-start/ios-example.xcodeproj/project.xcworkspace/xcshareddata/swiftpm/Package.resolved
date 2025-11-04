@@ -11,15 +11,6 @@
       }
     },
     {
-      "identity" : "curvelib.swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/tkey/curvelib.swift",
-      "state" : {
-        "revision" : "432bf1abe7ff505fc2ac9fcf697341ff5b2dc6d0",
-        "version" : "2.0.0"
-      }
-    },
-    {
       "identity" : "generic-json-swift",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/iwill/generic-json-swift",
@@ -29,30 +20,12 @@
       }
     },
     {
-      "identity" : "keychain-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/evgenyneu/keychain-swift.git",
-      "state" : {
-        "revision" : "d108a1fa6189e661f91560548ef48651ed8d93b9",
-        "version" : "20.0.0"
-      }
-    },
-    {
       "identity" : "secp256k1.swift",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/GigaBitcoin/secp256k1.swift.git",
       "state" : {
         "revision" : "347b84ed2aad2305a7233f2a48d76f41e52062a1",
         "version" : "0.16.0"
-      }
-    },
-    {
-      "identity" : "session-manager-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Web3Auth/session-manager-swift.git",
-      "state" : {
-        "revision" : "de18a6b3d98f67b3c77f84ebab73f7a51807a503",
-        "version" : "6.1.0"
       }
     },
     {
@@ -159,8 +132,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/web3auth/web3auth-swift-sdk",
       "state" : {
-        "revision" : "35d05c0af33687dac1a35968f498658c8c1893c7",
-        "version" : "11.0.4"
+        "revision" : "4658a598c342f9113ba92dbd9140c62c5c2e32ce",
+        "version" : "1.0.0"
       }
     },
     {

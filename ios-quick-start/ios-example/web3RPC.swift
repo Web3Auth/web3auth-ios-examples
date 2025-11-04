@@ -7,7 +7,7 @@ import Web3Auth
 import SwiftUI
 
 class Web3RPC : ObservableObject {
-    var user: Web3AuthState
+    var user: Web3AuthResponse
     private var client: EthereumClientProtocol
     public var address: EthereumAddress
     private var account: EthereumAccount
@@ -20,7 +20,7 @@ class Web3RPC : ObservableObject {
     @Published var sentTransactionID:String = ""
     @Published var publicAddress: String = ""
     
-    init?(user: Web3AuthState){
+    init?(user: Web3AuthResponse){
         self.user = user
         do{
             client = EthereumHttpClient(url: URL(string: RPC_URL)!, network: .fromString("11155111"))
@@ -117,13 +117,13 @@ class Web3RPC : ObservableObject {
     
 }
 
-extension Web3AuthState: EthereumSingleKeyStorageProtocol {
+extension Web3AuthResponse: EthereumSingleKeyStorageProtocol {
     public func storePrivateKey(key: Data) throws {
         
     }
     
     public func loadPrivateKey() throws -> Data {
-        guard let privKeyData = self.privKey?.web3.hexData else {
+        guard let privKeyData = self.privateKey?.web3.hexData else {
             throw SampleAppError.somethingWentWrong
         }
         return privKeyData

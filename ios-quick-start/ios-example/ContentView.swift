@@ -21,7 +21,7 @@ struct ContentView: View {
                         if vm.isLoading {
                             ProgressView()
                         } else {
-                            if vm.loggedIn,let user = vm.user, let web3rpc = Web3RPC(user: user) {
+                            if vm.loggedIn, let user = vm.user, let web3rpc = Web3RPC(user: user) {
                                 UserDetailView(
                                     web3RPC: web3rpc,
                                     viewModel: vm
@@ -36,7 +36,11 @@ struct ContentView: View {
                 }
                 .onAppear {
                     Task {
-                        await vm.setup()
+                        do {
+                            try await vm.setup()
+                        } catch {
+                            print("Setup error: \(error)")
+                        }
                     }
                 }
     }
