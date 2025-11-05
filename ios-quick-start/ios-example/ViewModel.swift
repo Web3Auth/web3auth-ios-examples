@@ -36,8 +36,7 @@ class ViewModel: ObservableObject {
             clientId: clientID,
             redirectUrl: redirectUrl,
             authBuildEnv: buildEnv,
-            web3AuthNetwork: web3AuthNetwork,
-            useSFAKey: true
+            web3AuthNetwork: web3AuthNetwork
         ))
         // IMP END - Initialize Web3Auth
         await MainActor.run(body: {
@@ -54,7 +53,7 @@ class ViewModel: ObservableObject {
         do {
             loggedIn = true
             user = try web3Auth?.getWeb3AuthResponse()
-            privateKey = ((web3Auth?.getPrivateKey() != "") ? web3Auth?.getPrivateKey() : try web3Auth?.getWeb3AuthResponse().factorKey) ?? ""
+            privateKey = web3Auth?.getPrivateKey() ?? ""
             ed25519PrivKey = try web3Auth?.getEd25519PrivateKey() ?? ""
             userInfo = try web3Auth?.getUserInfo()
         } catch {

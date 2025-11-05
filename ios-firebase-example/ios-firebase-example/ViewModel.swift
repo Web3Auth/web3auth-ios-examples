@@ -21,7 +21,6 @@ class ViewModel: ObservableObject {
     private var redirectUrl: String = "web3auth.ios-firebase-example://auth"
     private var web3AuthNetwork: Web3AuthNetwork = .SAPPHIRE_MAINNET
     private var buildEnv: BuildEnv = .production
-    private var useCoreKit: Bool = false
     private var loginParams: LoginParams?
     
     func setup() async throws {
@@ -46,8 +45,7 @@ class ViewModel: ObservableObject {
             authBuildEnv: buildEnv,
             authConnectionConfig: authConfig,
             sessionTime: 259200,
-            web3AuthNetwork: web3AuthNetwork,
-            useSFAKey: useCoreKit
+            web3AuthNetwork: web3AuthNetwork
         ))
         
         await MainActor.run(body: {

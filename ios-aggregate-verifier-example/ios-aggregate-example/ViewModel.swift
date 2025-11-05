@@ -19,7 +19,6 @@ class ViewModel: ObservableObject {
     private var redirectUrl = "web3auth.ios-aggregate-example://auth"
     private var web3AuthNetwork: Web3AuthNetwork = .SAPPHIRE_MAINNET
     private var buildEnv: BuildEnv = .production
-    private var useCoreKit: Bool = false
     private var chainConfig: [Chains] = [
         Chains(
             chainNamespace: .eip155,
@@ -66,8 +65,7 @@ class ViewModel: ObservableObject {
             authBuildEnv: buildEnv,
             authConnectionConfig: authConfig,
             sessionTime: 259200, // 3 days authentication period
-            web3AuthNetwork: web3AuthNetwork,
-            useSFAKey: useCoreKit
+            web3AuthNetwork: web3AuthNetwork
         ))
         
         await MainActor.run(body: {
