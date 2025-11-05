@@ -16,14 +16,19 @@ struct ContentView: View {
                         LoginView(vm: vm)
                     }
                 }
+                Spacer()
             }
             .navigationTitle(vm.navigationTitle)
-            Spacer()
         }
         .onAppear {
+            print("[ContentView] onAppear - loggedIn:", vm.loggedIn)
             Task {
                 try await vm.setup()
             }
+        }
+        .onChange(of: vm.loggedIn) { newValue in
+            print("[ContentView] vm.loggedIn changed:", newValue)
+            print("[ContentView] vm.user is nil:", vm.user == nil)
         }
     }
 }

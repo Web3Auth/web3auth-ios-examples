@@ -7,28 +7,28 @@
 
 import Foundation
 import Web3Auth
+import FetchNodeDetails
 
 class Web3AuthHelper {
     
     var web3Auth: Web3Auth!
+    private var clientID = "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiAZOTEBtTXw4tsluTITPqA8zMsfxIKMjiqNQ"
+    private var redirectUrl = "com.w3a.ios-solana-example://auth"
+    private var web3AuthNetwork: Web3AuthNetwork = .SAPPHIRE_MAINNET
+    private var buildEnv: BuildEnv = .production
     
     func initialize() async throws {
-        do {
-            web3Auth = try await Web3Auth(
-                W3AInitParams(
-                    clientId: "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiAZOTEBtTXw4tsluTITPqA8zMsfxIKMjiqNQ",
-                    network: Network.sapphire_mainnet,
-                    redirectUrl: "com.w3a.ios-solana-example://auth"
-                )
-            )
-        } catch let error {
-            print(error.localizedDescription)
-        }
-          
+        web3Auth = try await Web3Auth(options: .init(
+            clientId: clientID,
+            redirectUrl: redirectUrl,
+            authBuildEnv: buildEnv,
+            web3AuthNetwork: web3AuthNetwork,
+            useSFAKey: false
+        ))
     }
     
     func isUserAuthenticated() -> Bool {
-        return web3Auth.state != nil
+        return web3Auth.web3AuthResponse != nil
     }
     
     func logOut() async throws {
@@ -40,14 +40,14 @@ class Web3AuthHelper {
     }
     
     func getSolanaPrivateKey() throws -> String {
-        return web3Auth.getEd25519PrivKey()
+        return try web3Auth.getEd25519PrivateKey()
     }
     
     func login() async throws {
-        let _ = try await web3Auth.login(W3ALoginParams(
-            loginProvider: Web3AuthProvider.GOOGLE)
-        )
-        
-        return
+        _ = try await web3Auth.login(loginParams: LoginParams(
+            authConnection: .GOOGLE,
+            mfaLevel: .DEFAULT,
+            curve: .ED25519
+        ))
     }
 }

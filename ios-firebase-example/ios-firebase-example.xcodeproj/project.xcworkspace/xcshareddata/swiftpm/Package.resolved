@@ -38,6 +38,15 @@
       }
     },
     {
+      "identity" : "fetch-node-details-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/torusresearch/fetch-node-details-swift",
+      "state" : {
+        "revision" : "5b42dd1675f8a51ffe64feb688db7b1d764d5fc0",
+        "version" : "8.0.1"
+      }
+    },
+    {
       "identity" : "firebase-ios-sdk",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/firebase/firebase-ios-sdk",
@@ -98,6 +107,15 @@
       "state" : {
         "revision" : "5ccda3981422a84186387dbb763ba739178b529c",
         "version" : "2.3.0"
+      }
+    },
+    {
+      "identity" : "jwtdecode.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/auth0/JWTDecode.swift.git",
+      "state" : {
+        "revision" : "36a5ce735a61c4bc119593f43ce2c027b4ca7392",
+        "version" : "3.3.0"
       }
     },
     {
@@ -254,6 +272,15 @@
       }
     },
     {
+      "identity" : "torus-utils-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/torusresearch/torus-utils-swift.git",
+      "state" : {
+        "revision" : "235a70839d3ff5723402df95d665b15b8c551ad8",
+        "version" : "10.0.1"
+      }
+    },
+    {
       "identity" : "web3.swift",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/argentlabs/web3.swift",
@@ -267,8 +294,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Web3Auth/web3auth-swift-sdk/",
       "state" : {
-        "revision" : "35d05c0af33687dac1a35968f498658c8c1893c7",
-        "version" : "11.0.4"
+        "branch" : "feat/auth_service_v10_changes",
+        "revision" : "c43ab8ab6e9c4051de371db819f1cc18b3d91746"
       }
     },
     {

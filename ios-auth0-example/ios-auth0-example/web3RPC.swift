@@ -7,7 +7,7 @@ import Web3Auth
 import SwiftUI
 
 class Web3RPC : ObservableObject {
-    var user: Web3AuthState
+    var user: Web3AuthResponse
     private var client: EthereumClientProtocol
     public var address: EthereumAddress
     private var account: EthereumAccount
@@ -20,11 +20,12 @@ class Web3RPC : ObservableObject {
     @Published var sentTransactionID:String = ""
     @Published var publicAddress: String = ""
     
-    init?(user: Web3AuthState){
+    init?(user: Web3AuthResponse){
         self.user = user
         do{
             client = EthereumHttpClient(url: URL(string: RPC_URL)!, network: .sepolia)
-            account = try EthereumAccount(keyStorage: user as EthereumSingleKeyStorageProtocol )
+            let keyStorage = Web3AuthKeyStorage(response: user)
+            account = try EthereumAccount(keyStorage: keyStorage)
             address = account.address
         } catch {
              return nil
@@ -58,16 +59,17 @@ class Web3RPC : ObservableObject {
 
     
     func getBalance() {
-        Task {
-            let blockChanged = await checkLatestBlockChanged()
+        Task { [weak self] in
+            guard let self = self else { return }
+            let blockChanged = await self.checkLatestBlockChanged()
             guard blockChanged == true else {
                 return
             }
-            let _ = client.eth_getBalance(address: self.address, block: .Latest) { [unowned self] result in
+            let _ = self.client.eth_getBalance(address: self.address, block: .Latest) { [weak self] result in
                 switch result {
                 case .success(let weiValue):
                     let balance = TorusWeb3Utils.toEther(wei: weiValue) // Access the value directly
-                    DispatchQueue.main.async { [weak self] in
+                    DispatchQueue.main.async {
                         self?.balance = balance
                     }
                 case .failure(let error):
@@ -117,20 +119,24 @@ class Web3RPC : ObservableObject {
     
 }
 
-extension Web3AuthState: EthereumSingleKeyStorageProtocol {
+// Wrapper to avoid extending imported types with imported protocols
+class Web3AuthKeyStorage: EthereumSingleKeyStorageProtocol {
+    private let response: Web3AuthResponse
+    
+    init(response: Web3AuthResponse) {
+        self.response = response
+    }
+    
     public func storePrivateKey(key: Data) throws {
-        
+        // No-op for read-only storage
     }
     
     public func loadPrivateKey() throws -> Data {
-        guard let privKeyData = self.privKey?.web3.hexData else {
+        guard let privKeyData = response.privateKey?.web3.hexData else {
             throw SampleAppError.somethingWentWrong
         }
         return privKeyData
-        
     }
-    
-    
 }
 
 public enum SampleAppError:Error{

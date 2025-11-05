@@ -122,13 +122,14 @@ class MainViewModel: ObservableObject {
     func selfTransfer() {
         Task {
             do {
-                // Step 1: Initiate self-transfer
+                // Step 1: Initiate self-transfer (includes waiting for confirmation)
                 let hash = try await aptosHelper.selfTransfer()
                 print("Self-transfer successful with hash: \(hash)")
-                showAlert(content: "Self-transfer successful with hash: \(hash). Wait for a few seconds to reflect!")
                 
                 // Step 2: Reload balance after the transfer
                 try await loadBalance()
+                
+                showAlert(content: "Self-transfer successful!\n\nTransaction: \(hash)\n\nYour balance has been updated.")
             } catch let error {
                 showAlert(content: error.localizedDescription)
             }
@@ -143,18 +144,20 @@ class MainViewModel: ObservableObject {
         }
     }
     
-    /// Requests an airdrop from the Aptos testnet faucet and updates the balance.
+    /// Requests an airdrop from the Aptos devnet faucet and updates the balance.
     func airdropFaucet() {
         Task {
             do {
-                // Step 1: Request airdrop
+                // Step 1: Request airdrop from devnet (includes waiting for confirmation)
                 let txnHash = try await aptosHelper.airdropFaucet()
-                showAlert(content: "Airdropped 1 Aptos. Transaction hash: \(txnHash). Wait for a few seconds to reflect!")
                 
                 // Step 2: Reload balance after airdrop
                 try await loadBalance()
+                
+                showAlert(content: "Successfully airdropped 1 APT!\n\nTransaction: \(txnHash)\n\nYour balance has been updated.")
             } catch let error {
-                showAlert(content: error.localizedDescription)
+                print("Error in airdropFaucet: \(error.localizedDescription)")
+                showAlert(content: "Devnet faucet error: \(error.localizedDescription)")
             }
         }
     }

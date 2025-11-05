@@ -6,12 +6,13 @@ struct LoginView: View {
         List {
             Button(
                 action: {
-                    vm.loginViaFirebaseEP()
+                    vm.loginWithGoogle()
                 },
                 label: {
-                    Text("Sign via Firebase")
+                    Text("Continue with Google")
                 }
             )
+            .disabled(vm.isAuthenticating)
 
         }
     }

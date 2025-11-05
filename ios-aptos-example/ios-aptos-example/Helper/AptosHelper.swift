@@ -21,12 +21,12 @@ class AptosHelper {
     /// Initializes the Aptos client and account using the provided Web3Auth private key.
     /// - Parameter privateKey: The private key received from Web3Auth.
     func initialize(privateKey: String) async throws {
-        aptosClient = Aptos(aptosConfig: .testnet)
+        aptosClient = Aptos(aptosConfig: .devnet)
         if !privateKey.isEmpty {
             account = try generateAptosAccount(privateKey: privateKey)
         }
         
-        print("Aptos client and account initialized successfully.")
+        print("Aptos client and account initialized successfully on devnet.")
     }
     
     /// Generates an Aptos account using a Web3Auth private key.
@@ -61,51 +61,55 @@ class AptosHelper {
     /// Fetches the balance of AptosCoin for the current account.
     /// - Returns: The account balance as a string.
     func getBalance() async throws -> String {
-        let payload = InputViewFunctionData(
-            function: "0x1::account::exists_at",
-            functionArguments: [
-                account.accountAddress
-            ]
-        )
-        
-        let exists: Bool = try await aptosClient.general.view(payload: payload)[0]
-        
-        // Return 0, if account doesn't exist
-        if !exists {
-            return "0"
-        }
-        
-        
-        let aptosCoinResource = "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>"
-        
+        // Use view function to get balance (most reliable method)
         do {
-            let resource: Coin = try await aptosClient.account.getAccountResource(
-                address: account.accountAddress,
-                resourceType: aptosCoinResource
+            let payload = InputViewFunctionData(
+                function: "0x1::coin::balance",
+                typeArguments: ["0x1::aptos_coin::AptosCoin"],
+                functionArguments: [account.accountAddress]
             )
             
-            let atomicBalance = resource.coin.value
-            let balanceValue = formatBalanceToString(atomicBalanceString: atomicBalance)
-            print("Balance for account \(account.accountAddress.toString()): \(balanceValue)")
-            return balanceValue
-        } catch let error {
-            throw NSError(domain: "AptosHelper", code: 4, userInfo: [NSLocalizedDescriptionKey: "Failed to fetch balance: \(error.localizedDescription)"])
+            let result = try await aptosClient.general.view(payload: payload)
+            
+            if let balanceArray = result as? [Any], 
+               let stringValue = balanceArray.first as? String,
+               let atomicBalance = UInt64(stringValue) {
+                return formatBalanceToString(atomicBalance: atomicBalance)
+            }
+            
+            return "0"
+        } catch {
+            print("Failed to fetch balance: \(error.localizedDescription)")
+            return "0"
         }
     }
     
-    /// Requests an airdrop of Aptos tokens from the testnet faucet and returns the transaction hash.
+    /// Requests an airdrop of Aptos tokens from the devnet faucet and returns the transaction hash.
     /// - Returns: A string representing the transaction hash of the airdrop request.
     func airdropFaucet() async throws -> String {
-        let userTransaction = try await aptosClient.faucet.fundAccount(accountAddress: account.accountAddress, amount: 100_000_000)
-
-        if userTransaction.success {
-            print("Airdrop successful! Transaction hash: \(userTransaction.hash)")
-        } else {
-            throw NSError(domain: "AptosHelper", code: 5, userInfo: [NSLocalizedDescriptionKey: "Airdrop failed with status: \(userTransaction.vmStatus)"])
+        let faucetAmount = 100_000_000 // 1 APT
+        print("Attempting to fund account: \(account.accountAddress.toString()) with amount: \(faucetAmount) (1 APT) on devnet")
+        
+        // SDK method
+        do {
+            let userTransaction = try await aptosClient.faucet.fundAccount(accountAddress: account.accountAddress, amount: faucetAmount)
+            
+            if userTransaction.success {
+                // Wait for the transaction to be confirmed on-chain
+                let confirmedTxn = try await aptosClient.transaction.waitForTransaction(transactionHash: userTransaction.hash)
+                
+                // Add delay to ensure balance is updated
+                try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                
+                return confirmedTxn.hash
+            } else {
+                throw NSError(domain: "AptosHelper", code: 5, userInfo: [NSLocalizedDescriptionKey: "Airdrop failed with status: \(userTransaction.vmStatus)"])
+            }
+        } catch {
+            throw NSError(domain: "AptosHelper", code: 6, userInfo: [NSLocalizedDescriptionKey: "Devnet faucet request failed: \(error.localizedDescription)"])
         }
-        return userTransaction.hash
     }
-
+    
     /// Executes a self-transfer of AptosCoin within the same account.
     /// - Returns: The transaction hash of the self-transfer.
     func selfTransfer() async throws -> String {
@@ -132,25 +136,34 @@ class AptosHelper {
         )
         
         let txn = try await aptosClient.transaction.waitForTransaction(transactionHash: response.hash)
+        
+        // Add a small delay to ensure balance is updated
+        try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
                 
         return txn.hash
+    }
+    
+    /// Converts atomic balance to human-readable APT balance string.
+    /// - Parameter atomicBalance: The balance in atomic units (octas).
+    /// - Returns: A formatted string representing the balance in APT units.
+    private func formatBalanceToString(atomicBalance: UInt64) -> String {
+        let aptBalance = Double(atomicBalance) / 100_000_000.0
+        
+        let numberFormatter = NumberFormatter()
+        numberFormatter.numberStyle = .decimal
+        numberFormatter.maximumFractionDigits = 6
+        numberFormatter.minimumFractionDigits = 2
+        
+        return numberFormatter.string(from: NSNumber(value: aptBalance)) ?? "\(aptBalance)"
     }
     
     /// Converts atomic balance string units to human-readable APT balance string.
     /// - Parameter atomicBalanceString: The balance in atomic units as a string.
     /// - Returns: A formatted string representing the balance in APT units.
     private func formatBalanceToString(atomicBalanceString: String) -> String {
-        guard let atomicBalance = Int(atomicBalanceString) else {
+        guard let atomicBalance = UInt64(atomicBalanceString) else {
             return "Invalid balance"
         }
-        
-        let aptBalance = Double(atomicBalance) / 100_000_000.0
-        
-        let numberFormatter = NumberFormatter()
-        numberFormatter.numberStyle = .decimal
-        numberFormatter.maximumFractionDigits = 5
-        numberFormatter.minimumFractionDigits = 2
-        
-        return numberFormatter.string(from: NSNumber(value: aptBalance)) ?? "\(aptBalance)"
+        return formatBalanceToString(atomicBalance: atomicBalance)
     }
 }

@@ -7,19 +7,26 @@
 
 import Foundation
 import Web3Auth
+import FetchNodeDetails
 
 class Web3AuthHelper {
     
     var web3Auth: Web3Auth!
     
+    private let clientID = "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiAZOTEBtTXw4tsluTITPqA8zMsfxIKMjiqNQ"
+    private let redirectUrl = "com.w3a.ios-aptos-example://auth"
+    private let web3AuthNetwork: Web3AuthNetwork = .SAPPHIRE_MAINNET
+    private let buildEnv: BuildEnv = .production
+    
     /// Initializes the Web3Auth client with the required parameters for the specific network.
     /// - Throws: An error if initialization fails.
     func initialize() async throws {
         web3Auth = try await Web3Auth(
-            W3AInitParams(
-                clientId: "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiAZOTEBtTXw4tsluTITPqA8zMsfxIKMjiqNQ", // Replace with your actual client ID
-                network: Network.sapphire_mainnet, // Change network based on your requirements
-                redirectUrl: "com.w3a.ios-aptos-example://auth" // Update the redirect URL as per your app's configuration
+            options: .init(
+                clientId: clientID,
+                redirectUrl: redirectUrl,
+                authBuildEnv: buildEnv,
+                web3AuthNetwork: web3AuthNetwork
             )
         )
         print("Web3Auth initialized successfully.")
@@ -28,7 +35,7 @@ class Web3AuthHelper {
     /// Checks if the user is currently authenticated with Web3Auth.
     /// - Returns: A boolean indicating whether the user is authenticated.
     func isUserAuthenticated() -> Bool {
-        return web3Auth.state != nil
+        return web3Auth.web3AuthResponse != nil
     }
     
     /// Logs out the currently authenticated user.
@@ -51,7 +58,7 @@ class Web3AuthHelper {
     /// - Throws: An error if the private key retrieval fails.
     /// - Returns: The private key as a hex string.
     func getAptosPrivateKey() throws -> String {
-        let privateKey = web3Auth.getEd25519PrivKey()
+        let privateKey = try web3Auth.getEd25519PrivateKey()
         print("Private key retrieved: \(privateKey)")
         return privateKey
     }
@@ -60,10 +67,12 @@ class Web3AuthHelper {
     /// - Parameter email: The user's email for login.
     /// - Throws: An error if the login process fails.
     func login(email: String) async throws {
-        let _ = try await web3Auth.login(
-            W3ALoginParams(
-                loginProvider: Web3AuthProvider.EMAIL_PASSWORDLESS, // Using passwordless email login
-                extraLoginOptions: ExtraLoginOptions(login_hint: email) // Providing the email as a login hint
+        _ = try await web3Auth.login(
+            loginParams: LoginParams(
+                authConnection: .EMAIL_PASSWORDLESS,
+                mfaLevel: .DEFAULT,
+                extraLoginOptions: ExtraLoginOptions(login_hint: email),
+                curve: .ED25519
             )
         )
         print("User logged in successfully with email: \(email)")

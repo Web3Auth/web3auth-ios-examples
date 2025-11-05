@@ -7,6 +7,7 @@
 
 import Foundation
 import SolanaSwift
+import CryptoKit
 
 class SolanaViewModel: ObservableObject {
     private var solanaJSONRPCClient: JSONRPCAPIClient!
@@ -36,10 +37,9 @@ class SolanaViewModel: ObservableObject {
                 }
                 
             } catch let error {
-                print(error)
+                print("❌ [SolanaViewModel] Error during initialization: \(error.localizedDescription)")
             }
         }
-        
     }
     
     private func reloadBalance() {

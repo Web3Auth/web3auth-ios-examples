@@ -11,7 +11,7 @@ struct UserDetailView: View {
         if let user = viewModel.user {
             List {
                 Section {
-                    Text("\(user.privKey ?? "")")
+                    Text("\(user.privateKey ?? "")")
                 } header: {
                     Text("Private key")
                 }

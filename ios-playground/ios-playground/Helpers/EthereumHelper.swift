@@ -15,8 +15,9 @@ class EthereumHelper {
     private var client: EthereumHttpClient!
     private var chainId: Int!
     
-    func setUp(web3AuthState: Web3AuthState, rpcUrl: String, chainId: Int) throws {
-        self.ethereumAccount = try EthereumAccount.init(keyStorage: web3AuthState as EthereumSingleKeyStorageProtocol)
+    func setUp(web3AuthResponse: Web3AuthResponse, rpcUrl: String, chainId: Int) throws {
+        let keyStorage = Web3AuthKeyStorage(response: web3AuthResponse)
+        self.ethereumAccount = try EthereumAccount.init(keyStorage: keyStorage)
         self.client = EthereumHttpClient(url: URL.init(string: rpcUrl)!, network: .custom(chainId.description))
         self.chainId = chainId
     }
@@ -134,16 +135,22 @@ class EthereumHelper {
 }
 
 
-extension Web3AuthState: EthereumSingleKeyStorageProtocol {
+// Wrapper class to conform Web3AuthResponse to EthereumSingleKeyStorageProtocol
+class Web3AuthKeyStorage: EthereumSingleKeyStorageProtocol {
+    private let response: Web3AuthResponse
+    
+    init(response: Web3AuthResponse) {
+        self.response = response
+    }
+    
     public func storePrivateKey(key: Data) throws {
-        
+        // Not implemented - Web3Auth manages keys
     }
     
     public func loadPrivateKey() throws -> Data {
-        guard let data = self.privKey?.web3.hexData else {
+        guard let privKeyData = response.privateKey?.web3.hexData else {
             throw PlaygroundError.decodingError
         }
-        
-        return data
+        return privKeyData
     }
 }

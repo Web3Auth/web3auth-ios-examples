@@ -106,8 +106,11 @@ class MainViewModel: ObservableObject {
     
     private func prepareEthereumHelper() throws {
         self.ethereumHelper = EthereumHelper()
+        guard let web3AuthResponse = web3AuthHelper.getWeb3AuthResponse() else {
+            throw PlaygroundError.customErr("Web3Auth response not available")
+        }
         try self.ethereumHelper.setUp(
-            web3AuthState: web3AuthHelper.web3Auth!.state!,
+            web3AuthResponse: web3AuthResponse,
             rpcUrl: selectedChainConfig.rpcTarget,
             chainId: Int(selectedChainConfig.chainId)!
         )

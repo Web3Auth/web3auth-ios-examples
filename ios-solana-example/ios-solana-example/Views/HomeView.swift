@@ -111,9 +111,13 @@ struct HomeView: View {
                 })
             }
         }.onAppear(perform: {
-            solanaViewModel.initialize(
-                privateKey: try! viewModel.getSolanaPrivateKey()
+            do {
+                solanaViewModel.initialize(
+                privateKey: try viewModel.getSolanaPrivateKey()
             )
+            } catch {
+                print("❌ [HomeView] Failed to initialize Solana: \(error.localizedDescription)")
+            }
         })
     }
 }
