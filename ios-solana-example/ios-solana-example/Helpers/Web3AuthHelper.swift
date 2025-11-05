@@ -23,7 +23,7 @@ class Web3AuthHelper {
             redirectUrl: redirectUrl,
             authBuildEnv: buildEnv,
             web3AuthNetwork: web3AuthNetwork,
-            useSFAKey: true
+            useSFAKey: false
         ))
     }
     
@@ -40,8 +40,7 @@ class Web3AuthHelper {
     }
     
     func getSolanaPrivateKey() throws -> String {
-        print("getSolanaPrivateKey", web3Auth.getEd25519PrivateKey())
-        return web3Auth.getEd25519PrivateKey()
+        return try web3Auth.getEd25519PrivateKey()
     }
     
     func login() async throws {

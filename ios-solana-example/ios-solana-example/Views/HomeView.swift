@@ -113,7 +113,7 @@ struct HomeView: View {
         }.onAppear(perform: {
             do {
                 solanaViewModel.initialize(
-                privateKey: try! viewModel.getSolanaPrivateKey()
+                privateKey: try viewModel.getSolanaPrivateKey()
             )
             } catch {
                 print("❌ [HomeView] Failed to initialize Solana: \(error.localizedDescription)")
