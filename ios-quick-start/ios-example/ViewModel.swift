@@ -12,9 +12,9 @@ class ViewModel: ObservableObject {
     // IMP START - Get your Web3Auth Client ID from Dashboard
     private var clientId = "BPi5PB_UiIZ-cPz1GtV5i1I2iOSOHuimiXBI0e-Oe_u6X3oVAbCiAZOTEBtTXw4tsluTITPqA8zMsfxIKMjiqNQ"
     // IMP END - Get your Web3Auth Client ID from Dashboard
-    // IMP START - Whitelist bundle ID
+    // IMP START - Allowlist bundle ID
     private var network: Network = .sapphire_mainnet
-    // IMP END - Whitelist bundle ID
+    // IMP END - Allowlist bundle ID
     func setup() async {
         guard web3Auth == nil else { return }
         await MainActor.run(body: {
