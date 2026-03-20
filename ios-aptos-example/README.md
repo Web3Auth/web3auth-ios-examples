@@ -1,173 +1,145 @@
-# Web3Auth iOS Aptos Example
+# MetaMask Embedded Wallets — iOS Aptos Example
 
-[![Web3Auth](https://img.shields.io/badge/Web3Auth-SDK-blue)](https://web3auth.io/docs/sdk/pnp/ios)
-[![Web3Auth](https://img.shields.io/badge/Web3Auth-Community-cyan)](https://community.web3auth.io)
+[![Web3Auth iOS SDK](https://img.shields.io/badge/MetaMask_Embedded_Wallets-iOS_SDK-blue)](https://docs.metamask.io/embedded-wallets/sdk/ios/)
+[![Community](https://img.shields.io/badge/Builder_Hub-Community-cyan)](https://builder.metamask.io/c/embedded-wallets/5)
 
-This example demonstrates how to integrate Web3Auth with Aptos blockchain in an iOS application, enabling secure wallet creation and Aptos network interactions.
+Demonstrates integrating MetaMask Embedded Wallets (formerly Web3Auth) on iOS with the **Aptos blockchain**. The user authenticates with social login, and the resulting ed25519 private key is used to create an Aptos account and interact with the network.
 
-## Features
+## What This Example Covers
 
-- 📱 Native iOS integration
-- 🔐 Social login support (Google, Facebook, Twitter, etc.)
-- ⛓️ Aptos blockchain integration
-- 💰 APT token management
-- 🔑 Move module interactions
-- 📝 Transaction signing
-- 🔄 Account management
-- 🎨 Customizable UI components
+- Social login on iOS using the Web3Auth PnP SDK
+- Requesting an **ed25519 key** (Aptos curve) via `SUPPORTED_KEY_CURVES.ED25519`
+- Creating an Aptos account from the exported private key
+- Fetching APT balance
+- Sending APT transfers
+- Executing Move module functions
+
+## How the Private Key Works on Aptos
+
+The iOS SDK does not have a built-in Aptos provider. After login, you export the private key and use it with a Swift-native Aptos library:
+
+```swift
+// Request ed25519 key at login
+let result = try await web3Auth?.login(
+    W3ALoginParams(
+        loginProvider: .GOOGLE,
+        curve: .ED25519  // <-- Aptos uses ed25519
+    )
+)
+let privateKeyHex = result?.ed25519PrivKey ?? ""
+```
+
+The `ed25519PrivKey` field is the Aptos-compatible private key. The `privKey` field (secp256k1) is the EVM key — do not use it for Aptos.
 
 ## Prerequisites
 
-- Xcode 13.0 or higher
-- iOS 13.0+ deployment target
-- Swift 5.0 or higher
-- CocoaPods or Swift Package Manager
-- A Web3Auth account and client ID (get one at [Web3Auth Dashboard](https://dashboard.web3auth.io))
-- Basic understanding of Aptos blockchain
-
-## Tech Stack
-
-- **Language**: Swift
-- **Package Manager**: CocoaPods/SPM
-- **Web3 Libraries**: 
-  - `Web3Auth`: Core Web3Auth functionality
-  - `AptosSwift`: Aptos Swift SDK
-  - `TorusUtils`: Underlying key management
-  - `Base58Swift`: Base58 encoding/decoding
+- Xcode 14+
+- iOS 14.0+ deployment target
+- A **Web3Auth Client ID** from [dashboard.web3auth.io](https://dashboard.web3auth.io) with your bundle ID allowlisted
+- Basic familiarity with Aptos concepts (accounts, Move modules, gas)
 
 ## Installation
 
-1. Clone the repository:
 ```bash
-npx degit Web3Auth/web3auth-pnp-examples/ios/ios-aptos-example w3a-ios-aptos
+git clone https://github.com/Web3Auth/web3auth-ios-examples.git
+cd web3auth-ios-examples/ios-aptos-example
+open ios-aptos-example.xcodeproj
 ```
 
-2. Install dependencies:
-   - Using CocoaPods:
-   ```bash
-   cd w3a-ios-aptos
-   pod install
-   ```
-   - Or using Swift Package Manager:
-     - Open the project in Xcode
-     - File > Add Packages
-     - Add the required SDK packages
+Uses **Swift Package Manager** — Web3Auth and the Aptos Swift SDK are resolved automatically.
 
-3. Configure your project:
-   - Open `w3a-ios-aptos.xcworkspace` (for CocoaPods) or `w3a-ios-aptos.xcodeproj` (for SPM)
-   - Update Bundle Identifier
-   - Add your Web3Auth client ID in the configuration
-   - Configure URL Schemes for social login callbacks
-   - Set up Aptos network endpoints (Mainnet/Testnet/Devnet)
+## Configuration
 
-4. Run the application:
-   - Select your target device/simulator
-   - Build and run (⌘ + R)
+Open the ViewModel and set your Client ID and redirect URL:
+
+```swift
+import Web3Auth
+
+web3Auth = try await Web3Auth(W3AInitParams(
+    clientId: "YOUR_CLIENT_ID",
+    network: .sapphire_mainnet,
+    redirectUrl: "web3auth.ios-aptos-example://auth"
+))
+```
+
+Set up a URL scheme in **Target → Info → URL Types** to match the `redirectUrl`.
+
+## Key Operations
+
+### Create an Aptos Account
+
+```swift
+func createAptosAccount(privateKeyHex: String) throws -> AptosAccount {
+    let keyData = Data(hex: privateKeyHex)
+    return try AptosAccount(privateKey: keyData)
+}
+```
+
+### Fetch APT Balance
+
+```swift
+func getBalance(address: String) async throws -> UInt64 {
+    let resource = try await aptosClient.getAccountResource(
+        address: address,
+        resourceType: "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>"
+    )
+    return resource.data.coin.value
+}
+```
+
+### Send APT
+
+```swift
+func sendAPT(to recipient: String, amount: UInt64, signer: AptosAccount) async throws -> String {
+    let payload = TransferPayload(recipient: recipient, amount: amount)
+    let txHash = try await aptosClient.transfer(
+        sender: signer,
+        payload: payload
+    )
+    return txHash
+}
+```
+
+### Execute a Move Function
+
+```swift
+func executeMoveFunction(
+    moduleAddress: String,
+    moduleName: String,
+    functionName: String,
+    args: [Any],
+    signer: AptosAccount
+) async throws -> String {
+    let payload = EntryFunctionPayload(
+        function: "\(moduleAddress)::\(moduleName)::\(functionName)",
+        typeArguments: [],
+        arguments: args
+    )
+    return try await aptosClient.submitTransaction(sender: signer, payload: payload)
+}
+```
 
 ## Project Structure
 
 ```
-Web3AuthAptos/
-├── Sources/
-│   ├── AppDelegate.swift          # Application delegate
-│   ├── Web3AuthService.swift      # Web3Auth integration
-│   ├── AptosService.swift         # Aptos operations
-│   ├── TokenService.swift         # APT token operations
-│   └── ViewControllers/           # UI controllers
-├── Resources/                     # Assets and configs
-└── Web3AuthAptos.xcodeproj       # Xcode project file
+ios-aptos-example/
+├── ios-aptos-example.xcodeproj
+└── ios-aptos-example/
+    ├── ios_aptos_exampleApp.swift   # App entry point, URL handling
+    ├── Helper/                       # Aptos RPC helpers, key utilities
+    ├── ViewModels/                   # Web3Auth init, login, logout, Aptos logic
+    └── Views/                        # Login UI, user info, Aptos operations UI
 ```
-
-## Implementation Guide
-
-### 1. Initialize Web3Auth with Aptos Configuration
-
-```swift
-let web3Auth = Web3Auth(
-    clientId: "YOUR_CLIENT_ID",
-    network: .testnet,
-    redirectURL: "com.example.app://auth"
-)
-```
-
-### 2. Handle Aptos Account Creation
-
-```swift
-func createAptosAccount(privateKey: String) throws -> Account {
-    guard let keyData = Data(base58Decoding: privateKey) else {
-        throw Web3AuthError.invalidPrivateKey
-    }
-    return try Account(privateKey: keyData)
-}
-```
-
-### 3. Perform Aptos Transactions
-
-```swift
-func sendAPT(to recipient: String, amount: UInt64) async throws {
-    let transaction = try await aptosClient.transfer(
-        to: recipient,
-        amount: amount
-    )
-    let hash = try await aptosClient.submitTransaction(transaction)
-    print("Transaction sent: \(hash)")
-}
-```
-
-### 4. Handle Move Module Interactions
-
-```swift
-func executeMove(module: String, function: String, args: [String]) async throws {
-    let payload = try MovePayload(
-        module: module,
-        function: function,
-        args: args
-    )
-    let result = try await aptosClient.executeMove(payload)
-    print("Move execution result: \(result)")
-}
-```
-
-## Common Issues and Solutions
-
-1. **Build Issues**
-   - Update CocoaPods/SPM dependencies
-   - Clean build folder and rebuild
-   - Check Aptos SDK compatibility
-
-2. **Aptos Network Issues**
-   - Verify network endpoint configuration
-   - Check network status
-   - Handle rate limiting appropriately
-
-3. **Transaction Issues**
-   - Ensure sufficient APT balance
-   - Verify account permissions
-   - Handle transaction timeouts
-
-## Security Best Practices
-
-- Secure private key storage using Keychain
-- Implement proper transaction signing
-- Handle failed transactions gracefully
-- Validate all input addresses
-- Regular security audits
-- Follow Aptos security guidelines
 
 ## Resources
 
-- [Web3Auth iOS Documentation](https://web3auth.io/docs/sdk/pnp/ios)
-- [Aptos iOS Integration Guide](https://web3auth.io/docs/connect-blockchain/aptos)
+- [iOS SDK Documentation](https://docs.metamask.io/embedded-wallets/sdk/ios/)
+- [Authentication Overview](https://docs.metamask.io/embedded-wallets/authentication/)
 - [Aptos Swift SDK](https://github.com/ALCOVE-LAB/aptos-swift-sdk)
 - [Aptos Documentation](https://aptos.dev)
-- [Web3Auth Dashboard](https://dashboard.web3auth.io)
-- [Community Portal](https://community.web3auth.io)
-- [Discord Support](https://discord.gg/web3auth)
-
-## Contributing
-
-We welcome contributions! Please feel free to submit issues and pull requests.
+- [Dashboard](https://dashboard.web3auth.io)
+- [Builder Hub (Community & Support)](https://builder.metamask.io/c/embedded-wallets/5)
 
 ## License
 
-This example is available under the MIT License. See the LICENSE file for more info.
+MIT — see [LICENSE](../LICENSE) for details.

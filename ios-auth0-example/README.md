@@ -1,194 +1,145 @@
-# Web3Auth iOS Auth0 Example
+# MetaMask Embedded Wallets — iOS Auth0 Custom Connection Example
 
-[![Web3Auth](https://img.shields.io/badge/Web3Auth-SDK-blue)](https://web3auth.io/docs/sdk/pnp/ios)
-[![Web3Auth](https://img.shields.io/badge/Web3Auth-Community-cyan)](https://community.web3auth.io)
+[![Web3Auth iOS SDK](https://img.shields.io/badge/MetaMask_Embedded_Wallets-iOS_SDK-blue)](https://docs.metamask.io/embedded-wallets/sdk/ios/)
+[![Community](https://img.shields.io/badge/Builder_Hub-Community-cyan)](https://builder.metamask.io/c/embedded-wallets/5)
 
-This example demonstrates how to integrate Web3Auth with Auth0 authentication in an iOS application, providing a secure and customizable authentication flow for your mobile dApp users.
+Demonstrates integrating MetaMask Embedded Wallets (formerly Web3Auth) on iOS with **Auth0 as a custom authentication provider**. Users log in via Auth0 (which can front any identity provider — SAML, LDAP, social, enterprise SSO), and the resulting JWT is passed to the SDK to reconstruct their non-custodial wallet.
 
-## Features
+## What This Example Covers
 
-- 📱 Native iOS integration
-- 🔐 Auth0 authentication integration
-- 🎨 Custom UI implementation
-- 🔑 JWT-based authentication flow
-- ⛓️ Blockchain integration
-- 🔄 Session management
-- 🛡️ Secure token handling
-- 🎨 Customizable authentication flow
+- Creating a **custom connection** (formerly "custom verifier") on the Web3Auth dashboard for Auth0
+- Passing a JWT from Auth0 to `W3ALoginParams` to authenticate with the SDK
+- Configuring `loginConfig` with `TypeOfLogin.jwt` for JWT-based connections
+- White-labelling the SDK UI
+- MFA settings (device share, backup share, social backup, passkey, authenticator)
+- Session management (custom session duration)
+
+## How Custom Auth Works
+
+1. User taps **Login with Auth0**.
+2. Auth0 authenticates the user and returns an ID token (JWT).
+3. The JWT is passed to `web3Auth.login(W3ALoginParams(loginProvider: .JWT, ...))`.
+4. The SDK validates the JWT against your configured connection (JWKS endpoint) and reconstructs the user's private key.
+
+The private key is always the same for the same user + same connection + same Client ID + same network.
 
 ## Prerequisites
 
-- Xcode 13.0 or higher
-- iOS 13.0+ deployment target
-- Swift 5.0 or higher
-- CocoaPods or Swift Package Manager
-- Auth0 account and application setup
-- Web3Auth account and client ID (get one at [Web3Auth Dashboard](https://dashboard.web3auth.io))
-- Basic understanding of JWT and OAuth flows
+- Xcode 14+
+- iOS 14.0+ deployment target
+- A **Web3Auth Client ID** from [dashboard.web3auth.io](https://dashboard.web3auth.io)
+- An **Auth0 application** (Native type) with your bundle ID in the Allowed Callback URLs
+- A **custom connection** configured on the Web3Auth dashboard for Auth0
 
-## Tech Stack
+### Setting Up the Custom Connection
 
-- **Language**: Swift
-- **Package Manager**: CocoaPods/SPM
-- **Authentication**: 
-  - `Auth0.swift`: Auth0 SDK for iOS
-  - `JWTDecode`: JWT handling
-- **Web3 Libraries**: 
-  - `Web3Auth`: Core Web3Auth functionality
-  - `Web3`: Ethereum interaction library
-  - `TorusUtils`: Underlying key management
+1. On the dashboard, go to **Connections → Custom** and create a new connection.
+2. Set the **Auth Connection ID** (e.g. `w3a-auth0-demo`).
+3. Set the **JWKS endpoint** to `https://<your-auth0-domain>/.well-known/jwks.json`.
+4. Set the **user ID field** to `sub` (default for Auth0).
+5. Copy the connection ID — you'll use it as the `verifier` in `loginConfig`.
 
 ## Installation
 
-1. Clone the repository:
 ```bash
-npx degit Web3Auth/web3auth-pnp-examples/ios/ios-auth0-example w3a-ios-auth0
+git clone https://github.com/Web3Auth/web3auth-ios-examples.git
+cd web3auth-ios-examples/ios-auth0-example
+open ios-auth0-example.xcodeproj
 ```
 
-2. Install dependencies:
-   - Using CocoaPods:
-   ```bash
-   cd w3a-ios-auth0
-   pod install
-   ```
-   - Or using Swift Package Manager:
-     - Open the project in Xcode
-     - File > Add Packages
-     - Add the required SDK packages
+Uses **Swift Package Manager** — no CocoaPods needed. Dependencies (Web3Auth, Auth0.swift, web3.swift) resolve automatically.
 
-3. Configure your project:
-   - Open `w3a-ios-auth0.xcworkspace` (for CocoaPods) or `w3a-ios-auth0.xcodeproj` (for SPM)
-   - Update Bundle Identifier
-   - Add your Web3Auth client ID in the configuration
-   - Configure Auth0 credentials and settings
-   - Set up URL schemes for OAuth callbacks
+## Configuration
 
-4. Run the application:
-   - Select your target device/simulator
-   - Build and run (⌘ + R)
+Open `ViewModel.swift` and set your credentials:
+
+```swift
+import Web3Auth
+
+class ViewModel: ObservableObject {
+    var web3Auth: Web3Auth?
+    private var clientId = "YOUR_WEB3AUTH_CLIENT_ID"
+    private var network: Network = .sapphire_mainnet
+
+    func setup() async throws {
+        web3Auth = try await Web3Auth(W3AInitParams(
+            clientId: clientId,
+            network: network,
+            redirectUrl: "web3auth.ios-auth0-example://auth",
+            loginConfig: [
+                TypeOfLogin.jwt.rawValue: .init(
+                    verifier: "YOUR_AUTH0_CONNECTION_ID", // custom connection ID from dashboard
+                    typeOfLogin: .jwt,
+                    clientId: "YOUR_AUTH0_CLIENT_ID"
+                )
+            ],
+            whiteLabel: W3AWhiteLabelData(
+                appName: "My App",
+                defaultLanguage: .en,
+                mode: .dark,
+                theme: ["primary": "#d53f8c"]
+            ),
+            mfaSettings: MfaSettings(
+                deviceShareFactor: MfaSetting(enable: true, priority: 1),
+                backUpShareFactor: MfaSetting(enable: true, priority: 2),
+                socialBackupFactor: MfaSetting(enable: true, priority: 3),
+                passwordFactor: MfaSetting(enable: true, priority: 4),
+                passkeysFactor: MfaSetting(enable: true, priority: 5),
+                authenticatorFactor: MfaSetting(enable: true, priority: 6)
+            ),
+            sessionTime: 259200 // 3 days (default: 1 day)
+        ))
+    }
+}
+```
+
+## Login Flow
+
+```swift
+func loginWithAuth0() {
+    Task {
+        let result = try await web3Auth?.login(
+            W3ALoginParams(
+                loginProvider: .JWT,
+                extraLoginOptions: ExtraLoginOptions(
+                    domain: "https://YOUR_AUTH0_DOMAIN",
+                    verifierIdField: "sub"
+                ),
+                mfaLevel: .NONE,
+                curve: .SECP256K1
+            )
+        )
+        // result.privKey  → hex private key
+        // result.userInfo → name, email, profile image, typeOfLogin
+    }
+}
+```
+
+The SDK opens the Auth0 login page in an in-app browser. Once Auth0 redirects back, the JWT is automatically handled and the private key is reconstructed.
 
 ## Project Structure
 
 ```
-Web3AuthAuth0/
-├── Sources/
-│   ├── AppDelegate.swift          # Application delegate
-│   ├── Web3AuthService.swift      # Web3Auth integration
-│   ├── Auth0Service.swift         # Auth0 operations
-│   ├── TokenService.swift         # JWT token operations
-│   └── ViewControllers/           # UI controllers
-├── Resources/                     # Assets and configs
-└── Web3AuthAuth0.xcodeproj       # Xcode project file
+ios-auth0-example/
+├── ios-auth0-example.xcodeproj
+└── ios-auth0-example/
+    ├── ContentView.swift         # Root navigation
+    ├── LoginView.swift           # Auth0 login button
+    ├── UserDetailView.swift      # Post-login user info + blockchain actions
+    ├── ViewModel.swift           # Web3Auth init, login, logout
+    ├── TorusWeb3Utils.swift      # EVM utility helpers
+    └── web3RPC.swift             # Ethereum interactions via web3.swift
 ```
-
-## Implementation Guide
-
-### 1. Configure Auth0 Integration
-
-```swift
-Auth0.swift.configureClient(
-    clientId: "YOUR_AUTH0_CLIENT_ID",
-    domain: "YOUR_AUTH0_DOMAIN"
-)
-```
-
-### 2. Initialize Web3Auth with Custom Verifier
-
-```swift
-let web3Auth = Web3Auth(
-    clientId: "YOUR_WEB3AUTH_CLIENT_ID",
-    network: .testnet,
-    redirectURL: "com.example.app://auth"
-)
-
-web3Auth.setCustomVerifier("auth0-verifier")
-```
-
-### 3. Handle Auth0 Authentication
-
-```swift
-func loginWithAuth0() async throws -> Credentials {
-    return try await Auth0
-        .webAuth()
-        .scope("openid profile email")
-        .audience("https://your-api-identifier")
-        .start()
-}
-```
-
-### 4. Connect Web3Auth with JWT
-
-```swift
-func connectWeb3Auth(credentials: Credentials) async throws {
-    guard let idToken = credentials.idToken else {
-        throw AuthError.missingToken
-    }
-    
-    try await web3Auth.connectTo("jwt", {
-        id_token: idToken,
-        verifier: "auth0-verifier"
-    })
-}
-```
-
-## Auth0 Setup Guide
-
-1. Create an Auth0 Application:
-   - Go to Auth0 Dashboard
-   - Create a new Native Application
-   - Configure callback URLs
-   - Note down credentials
-
-2. Configure Auth0 Rules:
-   - Create custom rules if needed
-   - Configure token lifetime
-   - Set up appropriate scopes
-
-3. Web3Auth Configuration:
-   - Create a custom verifier
-   - Configure JWT validation
-   - Set up Auth0 as an authentication method
-
-## Common Issues and Solutions
-
-1. **Auth0 Configuration**
-   - Verify callback URLs
-   - Check scope configuration
-   - Handle CORS issues
-
-2. **Token Handling**
-   - Ensure proper token format
-   - Handle token expiration
-   - Implement token refresh logic
-
-3. **Integration Issues**
-   - Validate JWT format
-   - Check verifier configuration
-   - Handle authentication state properly
-
-## Security Best Practices
-
-- Secure token storage using Keychain
-- Implement proper JWT validation
-- Handle authentication state securely
-- Use HTTPS for all network calls
-- Regular security audits
-- Follow Auth0 security guidelines
 
 ## Resources
 
-- [Web3Auth iOS Documentation](https://web3auth.io/docs/sdk/pnp/ios)
-- [Auth0 iOS QuickStart](https://auth0.com/docs/quickstart/native/ios-swift)
-- [JWT Integration Guide](https://web3auth.io/docs/custom-authentication/jwt)
-- [Auth0 Documentation](https://auth0.com/docs)
-- [Web3Auth Dashboard](https://dashboard.web3auth.io)
-- [Community Portal](https://community.web3auth.io)
-- [Discord Support](https://discord.gg/web3auth)
-
-## Contributing
-
-We welcome contributions! Please feel free to submit issues and pull requests.
+- [iOS SDK Documentation](https://docs.metamask.io/embedded-wallets/sdk/ios/)
+- [Auth0 Custom Connection Guide](https://docs.metamask.io/embedded-wallets/authentication/custom-connections/auth0/)
+- [Custom Connections Overview](https://docs.metamask.io/embedded-wallets/authentication/)
+- [Dashboard](https://dashboard.web3auth.io)
+- [Auth0 iOS Quickstart](https://auth0.com/docs/quickstart/native/ios-swift)
+- [Builder Hub (Community & Support)](https://builder.metamask.io/c/embedded-wallets/5)
 
 ## License
 
-This example is available under the MIT License. See the LICENSE file for more info.
+MIT — see [LICENSE](../LICENSE) for details.

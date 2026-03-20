@@ -1,32 +1,35 @@
-# Web3Auth SFA iOS Aggregate Example
+# [DEPRECATED] SFA iOS Aggregate Verifier Example
 
-[![Web3Auth](https://img.shields.io/badge/Web3Auth-SDK-blue)](https://web3auth.io/docs/sdk/core-kit/sfa-ios)
-[![Web3Auth](https://img.shields.io/badge/Web3Auth-Community-cyan)](https://web3auth.io/community)
+> **This example is deprecated.**
+>
+> The Single Factor Auth (SFA / CoreKit) iOS SDK is no longer actively maintained. These examples will be updated to use the **MetaMask Embedded Wallets iOS SDK** (formerly Web3Auth PnP SDK).
+>
+> For the current recommended approach to grouped logins, see the [iOS Grouped Connection example](../ios-aggregate-verifier-example).
 
-[Join our Community Portal](https://web3auth.io/community) to get support and stay up to date with the latest news and updates.
+---
 
-This example demonstrates how to use Web3Auth in iOS.
+## What Was This?
 
-## How to Use
+This example demonstrated how to use the **Web3Auth Single Factor Auth (SFA) iOS SDK** with an aggregate verifier — linking multiple login providers (e.g. Google + Email) so the same user always gets the same wallet address, regardless of which provider they signed in with.
 
-### Download Manually
+### Why Was SFA Deprecated?
 
-```bash
-npx degit Web3Auth/web3auth-core-kit-examples/single-factor-auth-ios/sfa-ios-aggregate-example w3a-sfa-ios-aggregate-example
-```
+The PnP SDK covers aggregate verifiers (now called **grouped connections**) with a more complete feature set:
 
-Install & Run:
+- Grouped connections work the same way but are configured entirely on the dashboard
+- Supports Wallet Services, MFA, session management
+- Actively maintained with ongoing feature additions
 
-```bash
-cd w3a-sfa-ios-aggregate-example
-# run project in Xcode
-```
+## Migrate to PnP
 
-## Important Links
+If you were using SFA aggregate verifiers, switch to the [iOS Grouped Connection example](../ios-aggregate-verifier-example). The concept is identical:
+1. Configure a grouped connection on the dashboard with multiple sub-connections.
+2. Set `loginConfig` in `W3AInitParams` to point both providers at the same grouped connection ID with their respective `verifierSubIdentifier`.
+3. Users signing in with any of the linked providers always get the same wallet.
 
-- [Website](https://web3auth.io)
-- [Docs](https://web3auth.io/docs)
-- [Guides](https://web3auth.io/docs/guides)
-- [SDK / API References](https://web3auth.io/docs/sdk)
-- [Pricing](https://web3auth.io/pricing.html)
-- [Community Portal](https://community.web3auth.io)
+## Resources
+
+- [iOS SDK Documentation](https://docs.metamask.io/embedded-wallets/sdk/ios/)
+- [Grouped Connections Guide](https://docs.metamask.io/embedded-wallets/authentication/group-connections/)
+- [Dashboard](https://dashboard.web3auth.io)
+- [Builder Hub (Community & Support)](https://builder.metamask.io/c/embedded-wallets/5)

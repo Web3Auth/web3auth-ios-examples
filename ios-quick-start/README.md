@@ -1,175 +1,116 @@
-# Web3Auth iOS Quick Start Example
+# MetaMask Embedded Wallets — iOS Quick Start
 
-This example demonstrates how to integrate Web3Auth into an iOS application using the Web3Auth iOS SDK. It provides a simple yet comprehensive example of implementing Web3Auth's authentication and blockchain functionality in a native iOS app.
+[![Web3Auth iOS SDK](https://img.shields.io/badge/MetaMask_Embedded_Wallets-iOS_SDK-blue)](https://docs.metamask.io/embedded-wallets/sdk/ios/)
+[![Community](https://img.shields.io/badge/Builder_Hub-Community-cyan)](https://builder.metamask.io/c/embedded-wallets/5)
 
-## 📝 Features
-- Social login integration (Google, Facebook, Twitter, etc.)
-- Ethereum wallet creation and management
-- Basic blockchain interactions
-- Secure key management
-- Modern SwiftUI interface
-- iOS 13+ support
+The simplest integration of MetaMask Embedded Wallets (formerly Web3Auth) on iOS. Users log in with social providers (Google, Apple, Discord, etc.) and get a self-custodied Ethereum wallet — no seed phrase, no external app.
 
-## 🔗 Live Demo
-Download from TestFlight: [Add TestFlight Link]
+## What This Example Covers
 
-## 🚀 Getting Started
+- Initialising the Web3Auth iOS SDK with Sapphire Mainnet
+- Social login (Google, Apple, Discord, Email passwordless, and more)
+- Fetching the user's private key and deriving an Ethereum address
+- Signing messages and sending transactions with `web3.swift`
+- Logout and session restoration across app launches
 
-### Prerequisites
-- Xcode 13+
-- iOS 13.0+ deployment target
-- Swift 5.0+
-- CocoaPods or Swift Package Manager
-- [Web3Auth Dashboard](https://dashboard.web3auth.io) account
-- Basic understanding of iOS development and Web3
+## Prerequisites
 
-### Installation
+- Xcode 14+
+- iOS 14.0+ deployment target
+- Swift 5.7+
+- A Client ID from [dashboard.web3auth.io](https://dashboard.web3auth.io)
 
-1. Clone the repository:
+> **Important:** After creating a project on the dashboard, go to **Allowlist** and add your app's bundle identifier (e.g. `com.example.myapp`). Without this, logins will be rejected.
+
+## Installation
+
+Clone this repository and open the Xcode project directly — it uses **Swift Package Manager**. Dependencies resolve automatically.
+
 ```bash
-git clone https://github.com/Web3Auth/web3auth-mobile-examples.git
-cd web3auth-mobile-examples/ios/ios-quick-start
+git clone https://github.com/Web3Auth/web3auth-ios-examples.git
+cd web3auth-ios-examples/ios-quick-start
+open ios-example.xcodeproj
 ```
 
-2. Install dependencies:
-   - Using CocoaPods:
-   ```bash
-   pod install
-   ```
-   - Or using Swift Package Manager:
-     - Open the project in Xcode
-     - File > Add Packages
-     - Add the Web3Auth SDK package
+## Configuration
 
-3. Configure your project:
-   - Open `w3a-ios-quick-start.xcworkspace` (for CocoaPods) or `w3a-ios-quick-start.xcodeproj` (for SPM)
-   - Update Bundle Identifier
-   - Add your Web3Auth client ID in the configuration
-   - Configure URL Schemes for social login callbacks
+### 1. Set up a URL scheme
 
-4. Configure OAuth:
-   - Follow the [OAuth Configuration Guide](https://web3auth.io/docs/guides/oauth-providers)
-   - Set up required OAuth providers in Web3Auth Dashboard
-   - Update your OAuth credentials in the project
+Add a URL scheme in Xcode under **Target → Info → URL Types**. Use the format `$(PRODUCT_BUNDLE_IDENTIFIER)` or a custom string (e.g. `web3auth.ios-example`). This is the `redirectUrl` you pass to the SDK.
 
-5. Run the application:
-   - Select your target device/simulator
-   - Build and run (⌘ + R)
+### 2. Register the URL scheme on the dashboard
 
-## 💡 Implementation Details
+In your dashboard project, go to **iOS** under **Allowlist** and add the same scheme + bundle identifier.
 
-### Project Structure
-```
-Web3AuthExample/
-├── Sources/
-│   ├── AppDelegate.swift        # Application delegate
-│   ├── Web3AuthService.swift    # Web3Auth integration
-│   ├── BlockchainService.swift  # Blockchain operations
-│   ├── KeychainService.swift    # Secure storage
-│   └── ViewControllers/         # UI controllers
-├── Resources/                   # Assets and configs
-└── Web3AuthExample.xcodeproj   # Xcode project file
-```
+### 3. Add your Client ID
 
-### Core Features Implementation
+Open `ViewModel.swift` and replace the `clientId` with your own:
 
-1. **Initialize Web3Auth**
 ```swift
-let web3Auth = Web3Auth(
-    clientId: "YOUR-CLIENT-ID",
-    network: .testnet,
-    redirectURL: "com.example.app://auth"
-)
-```
+import Web3Auth
 
-2. **Configure Social Logins**
-```swift
-let loginConfig = LoginConfigItem(
-    verifier: "your-verifier-name",
-    typeOfLogin: .google,
-    clientId: "your-google-client-id"
-)
-web3Auth.setLoginConfig(loginConfig)
-```
+class ViewModel: ObservableObject {
+    var web3Auth: Web3Auth?
+    private var clientId = "YOUR_CLIENT_ID"
+    private var network: Network = .sapphire_mainnet
 
-3. **Handle Authentication**
-```swift
-web3Auth.login { [weak self] result in
-    switch result {
-    case .success(let result):
-        // Handle successful login
-        let privateKey = result.privKey
-        self?.handleLoginSuccess(privateKey)
-    case .failure(let error):
-        // Handle error
-        print("Error: \(error.localizedDescription)")
+    func setup() async {
+        web3Auth = try await Web3Auth(W3AInitParams(
+            clientId: clientId,
+            network: network,
+            redirectUrl: "web3auth.ios-example://auth"
+        ))
     }
 }
 ```
 
-4. **Secure Key Storage**
+Use `.sapphire_devnet` while testing locally, and switch to `.sapphire_mainnet` for production. **Never switch the network in production** — it permanently changes all user wallet addresses.
+
+## Logging In
+
 ```swift
-class KeychainService {
-    static func storePrivateKey(_ key: String) throws {
-        let keychain = KeychainSwift()
-        keychain.accessGroup = "your.app.group"
-        keychain.synchronizable = true
-        keychain.set(key, forKey: "private_key")
-    }
-    
-    static func retrievePrivateKey() -> String? {
-        let keychain = KeychainSwift()
-        return keychain.get("private_key")
+func login(provider: Web3AuthProvider) {
+    Task {
+        let result = try await web3Auth?.login(
+            W3ALoginParams(loginProvider: provider)
+        )
+        // result.privKey  → hex private key (secp256k1)
+        // result.userInfo → name, email, profile image
     }
 }
 ```
 
-## 🔒 Security Best Practices
+After login, the private key is available via `result.privKey`. Pass it to `web3.swift` (or any Swift EVM library) to sign transactions and interact with any EVM chain.
 
-- Use Keychain for sensitive data storage
-- Implement proper certificate pinning
-- Handle user data securely
-- Implement proper error handling
-- Use secure communication channels
-- Regular security audits
-- Follow Apple's security guidelines
-- Implement proper session management
+## Logging Out
 
-## 🛠️ Troubleshooting
+```swift
+try await web3Auth?.logout()
+```
 
-### Common Issues
+Sessions are cached by default. On the next cold start, `web3Auth.state` is non-nil if the session is still valid — no login prompt is shown.
 
-1. **Build Errors**
-   - Update CocoaPods/SPM dependencies
-   - Clean build folder and rebuild
-   - Check minimum iOS version requirements
-   - Verify architecture settings
+## Project Structure
 
-2. **OAuth Configuration**
-   - Verify URL scheme configuration
-   - Check client ID configuration
-   - Ensure proper callback handling
-   - Debug OAuth provider setup
+```
+ios-quick-start/
+├── ios-example.xcodeproj
+└── ios-example/
+    ├── ContentView.swift      # Root view, navigation
+    ├── LoginView.swift        # Social login button UI
+    ├── UserDetailView.swift   # Post-login user info + blockchain actions
+    ├── ViewModel.swift        # Web3Auth init, login, logout logic
+    └── web3RPC.swift          # EVM interactions via web3.swift
+```
 
-3. **Integration Issues**
-   - Review initialization parameters
-   - Check network connectivity
-   - Verify social login configurations
-   - Handle background state changes
+## Resources
 
-## 📚 Resources
+- [iOS SDK Documentation](https://docs.metamask.io/embedded-wallets/sdk/ios/)
+- [Authentication Overview](https://docs.metamask.io/embedded-wallets/authentication/)
+- [Dashboard](https://dashboard.web3auth.io)
+- [Builder Hub (Community & Support)](https://builder.metamask.io/c/embedded-wallets/5)
+- [GitHub Issues](https://github.com/Web3Auth/web3auth-ios-examples/issues)
 
-- [Web3Auth iOS Documentation](https://web3auth.io/docs/sdk/pnp/ios)
-- [iOS Integration Guide](https://web3auth.io/docs/guides/ios)
-- [API Reference](https://web3auth.io/docs/sdk/pnp/ios#api-reference)
-- [Web3Auth Dashboard](https://dashboard.web3auth.io)
+## License
 
-## 🤝 Support
-
-- [Discord](https://discord.gg/web3auth)
-- [GitHub Issues](https://github.com/Web3Auth/web3auth-mobile-examples/issues)
-- [Web3Auth Support](https://web3auth.io/docs/troubleshooting/support)
-
-## 📄 License
-
-This example is available under the MIT License. See the [LICENSE](../../LICENSE) file for more info.
+MIT — see [LICENSE](../LICENSE) for details.

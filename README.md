@@ -1,73 +1,69 @@
-# Web3Auth Mobile SDK Examples
+# MetaMask Embedded Wallets — iOS Examples
 
-[Web3Auth](https://web3auth.io) is a pluggable auth infrastructure for Web3 wallets and applications. This repository contains examples demonstrating the integration of Web3Auth's plug-and-play SDKs across various mobile platforms.
+[MetaMask Embedded Wallets](https://docs.metamask.io/embedded-wallets/) (formerly Web3Auth) lets you add non-custodial social login wallets to your app. Users sign in with Google, Apple, Auth0, Firebase, or any OAuth provider and get a deterministic, self-custodied private key — no seed phrases, no extension required.
 
-## 🌟 Key Features
+This repository contains iOS (Swift/SwiftUI) examples covering social login, custom authentication, and blockchain integrations.
 
-- **Plug-and-Play Integration**: Ready-to-use SDKs for iOS, Android, React Native, and Flutter
-- **Social Logins**: Support for multiple authentication providers (Google, Facebook, Twitter, etc.)
-- **Blockchain Support**: Examples for various blockchain integrations (EVM, Solana, etc.)
-- **Custom Authentication**: Examples showing custom auth provider integration
-- **Aggregate Verifiers**: Advanced examples demonstrating multi-provider authentication
+## iOS Examples
 
-## 📱 Platform Examples
+### Core Examples
 
-### React Native
-- [Quick Start Example](./react-native/rn-bare-quick-start): Basic integration with EVM chains
-- [Auth0 Example](./react-native/rn-bare-auth0-example): Custom authentication with Auth0
-- [Firebase Example](./react-native/rn-bare-firebase-example): Integration with Firebase authentication
-- [Solana Example](./react-native/rn-bare-solana-example): Integration with Solana blockchain
-- [Aggregate Verifier Example](./react-native/rn-bare-aggregate-verifier-example): Multi-provider authentication
-- [Expo Example](./react-native/rn-expo-example): Integration in Expo framework
+| Example | Description |
+|---|---|
+| [Quick Start](./ios-quick-start) | Basic social login (Google, Apple, etc.) + EVM wallet on Ethereum |
+| [Grouped Connection (Aggregate Verifier)](./ios-aggregate-verifier-example) | Multiple OAuth providers sharing one wallet address |
+| [Auth0 Custom Connection](./ios-auth0-example) | Custom JWT authentication via Auth0 |
+| [Firebase Custom Connection](./ios-firebase-example) | Custom JWT authentication via Firebase, with Wallet Services and MFA |
 
-### iOS
-- [Quick Start Example](./ios/ios-quick-start): Basic integration with EVM chains
-- [Auth0 Example](./ios/ios-auth0-example): Custom authentication with Auth0
-- [Firebase Example](./ios/ios-firebase-example): Integration with Firebase authentication
-- [Solana Example](./ios/ios-solana-example): Integration with Solana blockchain
-- [Aptos Example](./ios/ios-aptos-example): Integration with Aptos blockchain
-- [Aggregate Verifier Example](./ios/ios-aggregate-verifier-example): Multi-provider authentication
-- [Playground](./ios/ios-playground): Advanced features and configurations
+### Blockchain Examples
 
-### Flutter
-- [Quick Start Example](./flutter/flutter-quick-start): Basic integration with EVM chains
-- [Auth0 Example](./flutter/flutter-auth0-example): Custom authentication with Auth0
-- [Firebase Example](./flutter/flutter-firebase-example): Integration with Firebase authentication
-- [Aggregate Verifier Example](./flutter/flutter-aggregate-verifier-example): Multi-provider authentication
+| Example | Description |
+|---|---|
+| [Solana](./ios-solana-example) | Solana wallet creation, SOL transfers, SPL token interactions |
+| [Aptos](./ios-aptos-example) | Aptos wallet creation and Move module interactions |
 
-### Android
-- [Quick Start Example](./android/android-quick-start): Basic integration with EVM chains
-- [Auth0 Example](./android/android-auth0-example): Custom authentication with Auth0
-- [Firebase Example](./android/android-firebase-example): Integration with Firebase authentication
-- [Aggregate Verifier Example](./android/android-aggregate-verifier-example): Multi-provider authentication
+### Advanced
 
-## 🚀 Getting Started
+| Example | Description |
+|---|---|
+| [Playground](./ios-playground) | Full-featured sandbox: all login providers, MFA, Wallet Services, chain switching |
 
-Each example contains its own README with specific setup instructions. Generally, you'll need to:
+> **Note:** The `sfa-ios-*` examples used the deprecated Single Factor Auth (SFA/CoreKit) SDK and are no longer maintained. Use the PnP iOS SDK examples above instead.
 
-1. Clone this repository
-2. Choose your platform and example
-3. Follow the example-specific README instructions
-4. Get your Web3Auth Client ID from the [Web3Auth Dashboard](https://dashboard.web3auth.io)
-5. Configure the example with your Client ID and run it
+## Getting Started
 
-## 📚 Documentation
+1. **Get a Client ID** — Create a project at [dashboard.web3auth.io](https://dashboard.web3auth.io) and copy the Client ID.
+2. **Allowlist your bundle identifier** — In the dashboard, add your app's bundle ID under the iOS allowlist.
+3. **Configure a URL scheme** — Add a custom URL scheme in your `Info.plist` (e.g. `com.your.app://auth`) to handle OAuth redirects. Use the same value for `redirectUrl` in your `W3AInitParams`.
+4. **Clone and open** — Each example has its own README with step-by-step setup instructions.
 
-- [Web3Auth Documentation](https://web3auth.io/docs)
-- [Integration Builder](https://web3auth.io/docs/integration-builder)
-- Platform-specific guides:
-  - [iOS Guide](https://web3auth.io/docs/sdk/pnp/ios)
-  - [Android Guide](https://web3auth.io/docs/sdk/pnp/android)
-  - [React Native Guide](https://web3auth.io/docs/sdk/pnp/react-native)
-  - [Flutter Guide](https://web3auth.io/docs/sdk/pnp/flutter)
+```bash
+git clone https://github.com/Web3Auth/web3auth-ios-examples.git
+cd web3auth-ios-examples/ios-quick-start
+open ios-example.xcodeproj
+```
 
-## 🤝 Support
+All examples use **Swift Package Manager** — no CocoaPods required. Dependencies resolve automatically when you open the project in Xcode.
 
-- [Join our Discord](https://discord.gg/web3auth)
-- [Visit our Website](https://web3auth.io)
-- [Follow us on Twitter](https://twitter.com/web3auth)
-- [Submit an Issue](https://github.com/Web3Auth/web3auth-mobile-examples/issues)
+## Key SDK Concepts
 
-## 📄 License
+- **No built-in blockchain provider** — iOS SDK exports the private key directly. Use it with `web3.swift`, `solana-swift`, or any Swift-native library.
+- **Sapphire Devnet vs. Mainnet** — Use `sapphire_devnet` for local development. Switch to `sapphire_mainnet` for production. Changing the network changes all user wallet addresses permanently.
+- **Social logins** — Default connections (Google, Apple, Discord, etc.) work out of the box. Custom OAuth providers require creating a connection on the dashboard.
+- **Grouped connections** — Link multiple login methods (e.g. Google + GitHub) so the same user always gets the same wallet address.
 
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+## Documentation
+
+- [iOS SDK Docs](https://docs.metamask.io/embedded-wallets/sdk/ios/)
+- [Authentication Overview](https://docs.metamask.io/embedded-wallets/authentication/)
+- [Grouped Connections](https://docs.metamask.io/embedded-wallets/authentication/group-connections/)
+- [Dashboard](https://dashboard.web3auth.io)
+
+## Support
+
+- [Builder Hub (Community)](https://builder.metamask.io/c/embedded-wallets/5)
+- [GitHub Issues](https://github.com/Web3Auth/web3auth-ios-examples/issues)
+
+## License
+
+MIT — see [LICENSE](./LICENSE) for details.

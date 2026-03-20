@@ -1,32 +1,38 @@
-# Web3Auth SFA iOS QuickStart using Firebase for JWT
+# [DEPRECATED] SFA iOS Quick Start
 
-[![Web3Auth](https://img.shields.io/badge/Web3Auth-SDK-blue)](https://web3auth.io/docs/sdk/core-kit/sfa-ios)
-[![Web3Auth](https://img.shields.io/badge/Web3Auth-Community-cyan)](https://web3auth.io/community)
+> **This example is deprecated.**
+>
+> The Single Factor Auth (SFA / CoreKit) iOS SDK is no longer actively maintained. These examples will be updated to use the **MetaMask Embedded Wallets iOS SDK** (formerly Web3Auth PnP SDK).
+>
+> For the current recommended approach, see the [iOS Quick Start example](../ios-quick-start) or any other example in this repository.
 
-[Join our Community Portal](https://web3auth.io/community) to get support and stay up to date with the latest news and updates.
+---
 
-This example demonstrates how to use Web3Auth in iOS.
+## What Was This?
 
-## How to Use
+This example demonstrated how to use the **Web3Auth Single Factor Auth (SFA) iOS SDK** — a headless SDK that allowed custom JWT-based authentication (via Firebase) without a built-in login modal. Developers had to implement their own authentication UI and pass a JWT directly to the SDK.
 
-### Download Manually
+### Why Was SFA Deprecated?
 
-```bash
-npx degit Web3Auth/web3auth-core-kit-examples/single-factor-auth-ios/sfa-ios-quick-start w3a-sfa-ios-quick-start
-```
+The PnP SDK (used in all other examples in this repo) covers the same use case — custom JWT authentication via Firebase, Auth0, or any other provider — and additionally provides:
 
-Install & Run:
+- A built-in login modal (optional, can be hidden)
+- Session management and MFA support
+- Wallet Services (in-app wallet UI)
+- Active maintenance and new features
 
-```bash
-cd w3a-sfa-ios-quick-start
-# run project in Xcode
-```
+## Migrate to PnP
 
-## Important Links
+If you were using SFA for custom Firebase authentication, switch to the [Firebase Custom Connection example](../ios-firebase-example). The core flow is the same:
+1. Sign in with Firebase.
+2. Fetch a fresh ID token.
+3. Pass the token to the Web3Auth SDK.
 
-- [Website](https://web3auth.io)
-- [Docs](https://web3auth.io/docs)
-- [Guides](https://web3auth.io/docs/guides)
-- [SDK / API References](https://web3auth.io/docs/sdk)
-- [Pricing](https://web3auth.io/pricing.html)
-- [Community Portal](https://community.web3auth.io)
+All new features (Wallet Services, MFA, grouped connections) are available in the PnP SDK.
+
+## Resources
+
+- [iOS SDK Documentation](https://docs.metamask.io/embedded-wallets/sdk/ios/)
+- [Firebase Custom Connection Guide](https://docs.metamask.io/embedded-wallets/authentication/custom-connections/firebase/)
+- [Dashboard](https://dashboard.web3auth.io)
+- [Builder Hub (Community & Support)](https://builder.metamask.io/c/embedded-wallets/5)
