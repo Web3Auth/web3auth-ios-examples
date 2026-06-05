@@ -28,8 +28,6 @@ This repository contains iOS (Swift/SwiftUI) examples covering social login, cus
 |---|---|
 | [Playground](./ios-playground) | Full-featured sandbox: all login providers, MFA, Wallet Services, chain switching |
 
-> **Note:** The `sfa-ios-*` examples used the deprecated Single Factor Auth (SFA/CoreKit) SDK and are no longer maintained. Use the PnP iOS SDK examples above instead.
-
 ## Getting Started
 
 1. **Get a Client ID** — Create a project at [dashboard.web3auth.io](https://dashboard.web3auth.io) and copy the Client ID.
