@@ -107,7 +107,7 @@ class MainViewModel: ObservableObject {
     private func prepareEthereumHelper() throws {
         self.ethereumHelper = EthereumHelper()
         try self.ethereumHelper.setUp(
-            web3AuthState: web3AuthHelper.web3Auth!.state!,
+            web3AuthResponse: web3AuthHelper.web3Auth!.web3AuthResponse!,
             rpcUrl: selectedChainConfig.rpcTarget,
             chainId: Int(selectedChainConfig.chainId)!
         )

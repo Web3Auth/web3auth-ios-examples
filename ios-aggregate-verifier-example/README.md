@@ -10,7 +10,7 @@ In this example, a user can log in with **Google** or **GitHub (via Auth0)** and
 ## What This Example Covers
 
 - Configuring a **grouped connection** on the Web3Auth dashboard
-- Setting up `loginConfig` with multiple sub-connections (sub-verifiers) pointing to the same aggregate connection
+- Setting up `authConnectionConfig` with multiple sub-connections pointing to the same grouped connection ID
 - Logging in via Google (native OAuth) and GitHub (via Auth0 JWT)
 - Understanding how grouped connections ensure address consistency across providers
 
@@ -25,7 +25,7 @@ Use this whenever users might sign in via different providers but you want one c
 ## Prerequisites
 
 - Xcode 14+
-- iOS 14.0+ deployment target
+- iOS 15.5+ deployment target (SDK minimum is iOS 14.0)
 - A **Web3Auth Client ID** from [dashboard.web3auth.io](https://dashboard.web3auth.io)
 - A **grouped connection** configured on the dashboard with at least two sub-connections
 
@@ -34,7 +34,7 @@ Use this whenever users might sign in via different providers but you want one c
 1. Go to **Connections → Grouped** and create a new grouped connection.
 2. Add sub-connections: e.g. a Google sub-connection and a GitHub (via Auth0 JWT) sub-connection.
 3. Each sub-connection gets its own **Auth Connection ID** (sub-verifier ID).
-4. The **grouped connection ID** is what you set as `verifier` in `loginConfig`.
+4. The **grouped connection ID** is what you set as `authConnectionId` in `authConnectionConfig`.
 
 ## Installation
 
@@ -48,7 +48,7 @@ Uses **Swift Package Manager** — dependencies resolve automatically.
 
 ## Configuration
 
-Open `ViewModel.swift` and set your credentials. The key part is `loginConfig`, which maps each provider to the same parent `verifier` (grouped connection ID) while specifying a unique `verifierSubIdentifier` per sub-connection:
+Open `ViewModel.swift` and set your credentials. The key part is `authConnectionConfig`, which maps each provider to the same parent `authConnectionId` (grouped connection ID) while specifying a unique `groupedAuthConnectionId` per sub-connection:
 
 ```swift
 import Web3Auth
@@ -56,31 +56,32 @@ import Web3Auth
 class ViewModel: ObservableObject {
     var web3Auth: Web3Auth?
     private var clientId = "YOUR_WEB3AUTH_CLIENT_ID"
-    private var network: Network = .sapphire_mainnet
 
     func setup() async throws {
-        web3Auth = try await Web3Auth(W3AInitParams(
-            clientId: clientId,
-            network: network,
-            redirectUrl: "web3auth.ios-aggregate-example://auth",
-            loginConfig: [
-                TypeOfLogin.google.rawValue: .init(
-                    verifier: "YOUR_GROUPED_CONNECTION_ID",  // the parent grouped connection ID
-                    typeOfLogin: .google,
-                    name: "Google Login",
-                    clientId: "YOUR_GOOGLE_CLIENT_ID",
-                    verifierSubIdentifier: "YOUR_GOOGLE_SUB_CONNECTION_ID"
-                ),
-                TypeOfLogin.jwt.rawValue: .init(
-                    verifier: "YOUR_GROUPED_CONNECTION_ID",  // same parent ID
-                    typeOfLogin: .jwt,
-                    name: "GitHub Login",
-                    clientId: "YOUR_AUTH0_CLIENT_ID",
-                    verifierSubIdentifier: "YOUR_GITHUB_SUB_CONNECTION_ID"
-                )
-            ],
-            sessionTime: 259200 // 3 days
-        ))
+        web3Auth = try await Web3Auth(
+            options: Web3AuthOptions(
+                clientId: clientId,
+                web3AuthNetwork: .SAPPHIRE_MAINNET,
+                redirectUrl: "web3auth.ios-aggregate-example://auth",
+                authConnectionConfig: [
+                    AuthConnectionConfig(
+                        authConnectionId: "YOUR_GROUPED_CONNECTION_ID",
+                        groupedAuthConnectionId: "YOUR_GOOGLE_SUB_CONNECTION_ID",
+                        authConnection: .GOOGLE,
+                        name: "Google Login",
+                        clientId: "YOUR_GOOGLE_CLIENT_ID"
+                    ),
+                    AuthConnectionConfig(
+                        authConnectionId: "YOUR_GROUPED_CONNECTION_ID",
+                        groupedAuthConnectionId: "YOUR_GITHUB_SUB_CONNECTION_ID",
+                        authConnection: .CUSTOM,
+                        name: "GitHub Login",
+                        clientId: "YOUR_AUTH0_CLIENT_ID"
+                    )
+                ],
+                sessionTime: 259200
+            )
+        )
     }
 }
 ```
@@ -91,10 +92,10 @@ class ViewModel: ObservableObject {
 ```swift
 func loginWithGoogle() {
     Task {
-        let result = try await web3Auth?.login(
-            W3ALoginParams(loginProvider: .GOOGLE)
+        let result = try await web3Auth?.connectTo(
+            loginParams: LoginParams(authConnection: .GOOGLE)
         )
-        // result.privKey → same key regardless of which provider was used
+        // result.privateKey → same key regardless of which provider was used
     }
 }
 ```
@@ -103,14 +104,14 @@ func loginWithGoogle() {
 ```swift
 func loginWithGitHub() {
     Task {
-        let result = try await web3Auth?.login(
-            W3ALoginParams(
-                loginProvider: .JWT,
+        let result = try await web3Auth?.connectTo(
+            loginParams: LoginParams(
+                authConnection: .CUSTOM,
                 extraLoginOptions: ExtraLoginOptions(
                     connection: "github",
                     domain: "https://YOUR_AUTH0_DOMAIN",
-                    verifierIdField: "email",
-                    isVerifierIdCaseSensitive: false
+                    userIdField: "email",
+                    isUserIdCaseSensitive: false
                 )
             )
         )

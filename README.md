@@ -26,13 +26,13 @@ This repository contains iOS (Swift/SwiftUI) examples covering social login, cus
 
 | Example | Description |
 |---|---|
-| [Playground](./ios-playground) | Full-featured sandbox: all login providers, MFA, Wallet Services, chain switching |
+| [Playground](./ios-playground) | Email passwordless login, multi-chain EVM switching, signing, and ERC-20 interactions |
 
 ## Getting Started
 
 1. **Get a Client ID** — Create a project at [dashboard.web3auth.io](https://dashboard.web3auth.io) and copy the Client ID.
 2. **Allowlist your bundle identifier** — In the dashboard, add your app's bundle ID under the iOS allowlist.
-3. **Configure a URL scheme** — Add a custom URL scheme in your `Info.plist` (e.g. `com.your.app://auth`) to handle OAuth redirects. Use the same value for `redirectUrl` in your `W3AInitParams`.
+3. **Configure a URL scheme** — Add a custom URL scheme in your `Info.plist` (e.g. `com.your.app://auth`) to handle OAuth redirects. Use the same value for `redirectUrl` in your `Web3AuthOptions`.
 4. **Clone and open** — Each example has its own README with step-by-step setup instructions.
 
 ```bash
@@ -46,7 +46,7 @@ All examples use **Swift Package Manager** — no CocoaPods required. Dependenci
 ## Key SDK Concepts
 
 - **No built-in blockchain provider** — iOS SDK exports the private key directly. Use it with `web3.swift`, `solana-swift`, or any Swift-native library.
-- **Sapphire Devnet vs. Mainnet** — Use `sapphire_devnet` for local development. Switch to `sapphire_mainnet` for production. Changing the network changes all user wallet addresses permanently.
+- **Sapphire Devnet vs. Mainnet** — Use `.SAPPHIRE_DEVNET` for local development. Switch to `.SAPPHIRE_MAINNET` for production. Changing the network changes all user wallet addresses permanently.
 - **Social logins** — Default connections (Google, Apple, Discord, etc.) work out of the box. Custom OAuth providers require creating a connection on the dashboard.
 - **Grouped connections** — Link multiple login methods (e.g. Google + GitHub) so the same user always gets the same wallet address.
 

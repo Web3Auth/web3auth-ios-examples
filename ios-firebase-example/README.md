@@ -20,7 +20,7 @@ This is the most feature-rich example in the repo — it also demonstrates **Wal
 
 1. User signs in with Firebase (`Auth.auth().signIn(...)`).
 2. A fresh ID token is fetched via `getIDTokenResult(forcingRefresh: true)`.
-3. The token is passed to `web3Auth.login(W3ALoginParams(..., extraLoginOptions: ExtraLoginOptions(id_token: token, ...)))`.
+3. The token is passed to `web3Auth.connectTo(loginParams: LoginParams(authConnection: .CUSTOM, idToken: token, ...))`.
 4. The SDK validates the JWT against your configured connection (Firebase JWKS endpoint) and reconstructs the private key.
 
 **Important:** The Firebase ID token must be fetched fresh on every login call — it expires quickly and the SDK enforces a 60-second `iat` window.
@@ -28,7 +28,7 @@ This is the most feature-rich example in the repo — it also demonstrates **Wal
 ## Prerequisites
 
 - Xcode 14+
-- iOS 14.0+ deployment target
+- iOS 15.5+ deployment target (SDK minimum is iOS 14.0)
 - A **Web3Auth Client ID** from [dashboard.web3auth.io](https://dashboard.web3auth.io)
 - A **Firebase project** with Email/Password authentication enabled
 - A **custom connection** configured on the Web3Auth dashboard for Firebase
@@ -39,7 +39,7 @@ This is the most feature-rich example in the repo — it also demonstrates **Wal
 1. On the dashboard, go to **Connections → Custom** and create a new connection.
 2. Set the **JWKS endpoint** to `https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com`.
 3. Set the **user ID field** to `sub`.
-4. Copy the connection ID and use it as the `verifier` in `loginConfig`.
+4. Copy the connection ID and use it as the `authConnectionId` in `authConnectionConfig`.
 
 ## Installation
 
@@ -62,20 +62,28 @@ import FirebaseAuth
 class ViewModel: ObservableObject {
     var web3Auth: Web3Auth?
     private var clientId = "YOUR_WEB3AUTH_CLIENT_ID"
-    private var network: Network = .sapphire_mainnet
 
     func setup() async throws {
-        web3Auth = try await Web3Auth(W3AInitParams(
-            clientId: clientId,
-            network: network,
-            redirectUrl: "web3auth.ios-firebase-example://auth",
-            loginConfig: [
-                TypeOfLogin.jwt.rawValue: .init(
-                    verifier: "YOUR_FIREBASE_CONNECTION_ID", // from dashboard
-                    typeOfLogin: .jwt,
-                    clientId: clientId
-                )
-            ],
+        web3Auth = try await Web3Auth(
+            options: Web3AuthOptions(
+                clientId: clientId,
+                web3AuthNetwork: .SAPPHIRE_MAINNET,
+                redirectUrl: "web3auth.ios-firebase-example://auth",
+                authConnectionConfig: [
+                    AuthConnectionConfig(
+                        authConnectionId: "YOUR_FIREBASE_CONNECTION_ID",
+                        authConnection: .CUSTOM,
+                        clientId: clientId
+                    )
+                ],
+                chains: [
+                    Chains(
+                        chainId: "0xaa36a7",
+                        rpcTarget: "https://eth-sepolia.public.blastapi.io",
+                        displayName: "Sepolia"
+                    )
+                ],
+                defaultChainId: "0xaa36a7",
             mfaSettings: MfaSettings(
                 deviceShareFactor: MfaSetting(enable: true, priority: 1),
                 backUpShareFactor: MfaSetting(enable: true, priority: 2),
@@ -99,18 +107,16 @@ func loginViaFirebase(email: String, password: String) async throws {
     let tokenResult = try await Auth.auth().currentUser?.getIDTokenResult(forcingRefresh: true)
 
     // 3. Pass the token to Web3Auth
-    let result = try await web3Auth?.login(
-        W3ALoginParams(
-            loginProvider: .JWT,
-            extraLoginOptions: ExtraLoginOptions(
-                id_token: tokenResult?.token,
-                verifierIdField: "sub"
-            ),
+    let result = try await web3Auth?.connectTo(
+        loginParams: LoginParams(
+            authConnection: .CUSTOM,
+            authConnectionId: "YOUR_FIREBASE_CONNECTION_ID",
+            idToken: tokenResult?.token,
             mfaLevel: .NONE,
             curve: .SECP256K1
         )
     )
-    // result.privKey → hex private key
+    // result.privateKey → hex private key
 }
 ```
 
@@ -120,12 +126,7 @@ Wallet Services provides an in-app webview with a fully functional wallet — se
 
 ```swift
 func launchWalletServices() async throws {
-    try await web3Auth?.launchWalletServices(
-        chainConfig: ChainConfig(
-            chainId: "0xaa36a7",                                    // Ethereum Sepolia
-            rpcTarget: "https://eth-sepolia.public.blastapi.io"
-        )
-    )
+    try await web3Auth?.showWalletUI()
 }
 ```
 
@@ -140,10 +141,6 @@ func signMessage() async throws -> String? {
     params.append(userAddress)
 
     let result = try await web3Auth?.request(
-        chainConfig: ChainConfig(
-            chainId: "0x89",
-            rpcTarget: "https://polygon.llamarpc.com"
-        ),
         method: "personal_sign",
         requestParams: params
     )

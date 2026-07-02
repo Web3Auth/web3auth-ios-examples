@@ -64,7 +64,7 @@ struct UserDetailView: View {
                 }
                 if isPrivateKeySectionVisible {
                     Section(header: Text("Private Key")) {
-                        Text("\(user.privKey ?? "")")
+                        Text("\(user.privateKey ?? "")")
                     }
                 }
 

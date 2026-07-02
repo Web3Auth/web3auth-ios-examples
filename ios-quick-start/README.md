@@ -16,7 +16,7 @@ The simplest integration of MetaMask Embedded Wallets (formerly Web3Auth) on iOS
 ## Prerequisites
 
 - Xcode 14+
-- iOS 14.0+ deployment target
+- iOS 15.5+ deployment target (SDK minimum is iOS 14.0)
 - Swift 5.7+
 - A Client ID from [dashboard.web3auth.io](https://dashboard.web3auth.io)
 
@@ -52,35 +52,36 @@ import Web3Auth
 class ViewModel: ObservableObject {
     var web3Auth: Web3Auth?
     private var clientId = "YOUR_CLIENT_ID"
-    private var network: Network = .sapphire_mainnet
 
     func setup() async {
-        web3Auth = try await Web3Auth(W3AInitParams(
-            clientId: clientId,
-            network: network,
-            redirectUrl: "web3auth.ios-example://auth"
-        ))
+        web3Auth = try await Web3Auth(
+            options: Web3AuthOptions(
+                clientId: clientId,
+                web3AuthNetwork: .SAPPHIRE_MAINNET,
+                redirectUrl: "web3auth.ios-example://auth"
+            )
+        )
     }
 }
 ```
 
-Use `.sapphire_devnet` while testing locally, and switch to `.sapphire_mainnet` for production. **Never switch the network in production** — it permanently changes all user wallet addresses.
+Use `.SAPPHIRE_DEVNET` while testing locally, and switch to `.SAPPHIRE_MAINNET` for production. **Never switch the network in production** — it permanently changes all user wallet addresses.
 
 ## Logging In
 
 ```swift
-func login(provider: Web3AuthProvider) {
+func login(provider: AuthConnection) {
     Task {
-        let result = try await web3Auth?.login(
-            W3ALoginParams(loginProvider: provider)
+        let result = try await web3Auth?.connectTo(
+            loginParams: LoginParams(authConnection: provider)
         )
-        // result.privKey  → hex private key (secp256k1)
-        // result.userInfo → name, email, profile image
+        // result.privateKey  → hex private key (secp256k1)
+        // result.userInfo    → name, email, profile image
     }
 }
 ```
 
-After login, the private key is available via `result.privKey`. Pass it to `web3.swift` (or any Swift EVM library) to sign transactions and interact with any EVM chain.
+After login, the private key is available via `result.privateKey`. Pass it to `web3.swift` (or any Swift EVM library) to sign transactions and interact with any EVM chain.
 
 ## Logging Out
 
@@ -88,7 +89,7 @@ After login, the private key is available via `result.privKey`. Pass it to `web3
 try await web3Auth?.logout()
 ```
 
-Sessions are cached by default. On the next cold start, `web3Auth.state` is non-nil if the session is still valid — no login prompt is shown.
+Sessions are cached by default. On the next cold start, `web3Auth.web3AuthResponse` is non-nil if the session is still valid — no login prompt is shown.
 
 ## Project Structure
 

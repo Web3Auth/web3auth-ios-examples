@@ -20,21 +20,22 @@ The iOS SDK does not have a built-in Aptos provider. After login, you export the
 
 ```swift
 // Request ed25519 key at login
-let result = try await web3Auth?.login(
-    W3ALoginParams(
-        loginProvider: .GOOGLE,
-        curve: .ED25519  // <-- Aptos uses ed25519
+let result = try await web3Auth?.connectTo(
+    loginParams: LoginParams(
+        authConnection: .EMAIL_PASSWORDLESS,
+        loginHint: "user@example.com",
+        curve: .ED25519
     )
 )
-let privateKeyHex = result?.ed25519PrivKey ?? ""
+let privateKeyHex = result?.ed25519PrivateKey ?? ""
 ```
 
-The `ed25519PrivKey` field is the Aptos-compatible private key. The `privKey` field (secp256k1) is the EVM key — do not use it for Aptos.
+The `ed25519PrivateKey` field is the Aptos-compatible private key. The `privateKey` field (secp256k1) is the EVM key — do not use it for Aptos.
 
 ## Prerequisites
 
 - Xcode 14+
-- iOS 14.0+ deployment target
+- iOS 16.0+ deployment target (SDK minimum is iOS 14.0)
 - A **Web3Auth Client ID** from [dashboard.web3auth.io](https://dashboard.web3auth.io) with your bundle ID allowlisted
 - Basic familiarity with Aptos concepts (accounts, Move modules, gas)
 
@@ -55,11 +56,13 @@ Open the ViewModel and set your Client ID and redirect URL:
 ```swift
 import Web3Auth
 
-web3Auth = try await Web3Auth(W3AInitParams(
-    clientId: "YOUR_CLIENT_ID",
-    network: .sapphire_mainnet,
-    redirectUrl: "web3auth.ios-aptos-example://auth"
-))
+web3Auth = try await Web3Auth(
+    options: Web3AuthOptions(
+        clientId: "YOUR_CLIENT_ID",
+        web3AuthNetwork: .SAPPHIRE_MAINNET,
+        redirectUrl: "com.w3a.ios-aptos-example://auth"
+    )
+)
 ```
 
 Set up a URL scheme in **Target → Info → URL Types** to match the `redirectUrl`.

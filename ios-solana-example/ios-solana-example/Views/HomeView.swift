@@ -79,7 +79,7 @@ struct HomeView: View {
                     })
                     
                     if !signature.isEmpty {
-                        Text(hash)
+                        Text(signature)
                     }
                     
                     Button(action: {

@@ -8,8 +8,8 @@ Demonstrates integrating MetaMask Embedded Wallets (formerly Web3Auth) on iOS wi
 ## What This Example Covers
 
 - Creating a **custom connection** (formerly "custom verifier") on the Web3Auth dashboard for Auth0
-- Passing a JWT from Auth0 to `W3ALoginParams` to authenticate with the SDK
-- Configuring `loginConfig` with `TypeOfLogin.jwt` for JWT-based connections
+- Passing a JWT from Auth0 to `LoginParams` to authenticate with the SDK
+- Configuring `authConnectionConfig` for custom JWT connections
 - White-labelling the SDK UI
 - MFA settings (device share, backup share, social backup, passkey, authenticator)
 - Session management (custom session duration)
@@ -18,7 +18,7 @@ Demonstrates integrating MetaMask Embedded Wallets (formerly Web3Auth) on iOS wi
 
 1. User taps **Login with Auth0**.
 2. Auth0 authenticates the user and returns an ID token (JWT).
-3. The JWT is passed to `web3Auth.login(W3ALoginParams(loginProvider: .JWT, ...))`.
+3. The JWT is passed to `web3Auth.connectTo(loginParams: LoginParams(authConnection: .CUSTOM, ...))`.
 4. The SDK validates the JWT against your configured connection (JWKS endpoint) and reconstructs the user's private key.
 
 The private key is always the same for the same user + same connection + same Client ID + same network.
@@ -26,7 +26,7 @@ The private key is always the same for the same user + same connection + same Cl
 ## Prerequisites
 
 - Xcode 14+
-- iOS 14.0+ deployment target
+- iOS 15.5+ deployment target (SDK minimum is iOS 14.0)
 - A **Web3Auth Client ID** from [dashboard.web3auth.io](https://dashboard.web3auth.io)
 - An **Auth0 application** (Native type) with your bundle ID in the Allowed Callback URLs
 - A **custom connection** configured on the Web3Auth dashboard for Auth0
@@ -37,7 +37,7 @@ The private key is always the same for the same user + same connection + same Cl
 2. Set the **Auth Connection ID** (e.g. `w3a-auth0-demo`).
 3. Set the **JWKS endpoint** to `https://<your-auth0-domain>/.well-known/jwks.json`.
 4. Set the **user ID field** to `sub` (default for Auth0).
-5. Copy the connection ID — you'll use it as the `verifier` in `loginConfig`.
+5. Copy the connection ID — you'll use it as the `authConnectionId` in `authConnectionConfig`.
 
 ## Installation
 
@@ -47,7 +47,7 @@ cd web3auth-ios-examples/ios-auth0-example
 open ios-auth0-example.xcodeproj
 ```
 
-Uses **Swift Package Manager** — no CocoaPods needed. Dependencies (Web3Auth, Auth0.swift, web3.swift) resolve automatically.
+Uses **Swift Package Manager** — no CocoaPods needed. Dependencies (Web3Auth, web3.swift) resolve automatically.
 
 ## Configuration
 
@@ -59,21 +59,21 @@ import Web3Auth
 class ViewModel: ObservableObject {
     var web3Auth: Web3Auth?
     private var clientId = "YOUR_WEB3AUTH_CLIENT_ID"
-    private var network: Network = .sapphire_mainnet
 
     func setup() async throws {
-        web3Auth = try await Web3Auth(W3AInitParams(
-            clientId: clientId,
-            network: network,
-            redirectUrl: "web3auth.ios-auth0-example://auth",
-            loginConfig: [
-                TypeOfLogin.jwt.rawValue: .init(
-                    verifier: "YOUR_AUTH0_CONNECTION_ID", // custom connection ID from dashboard
-                    typeOfLogin: .jwt,
-                    clientId: "YOUR_AUTH0_CLIENT_ID"
-                )
-            ],
-            whiteLabel: W3AWhiteLabelData(
+        web3Auth = try await Web3Auth(
+            options: Web3AuthOptions(
+                clientId: clientId,
+                web3AuthNetwork: .SAPPHIRE_MAINNET,
+                redirectUrl: "web3auth.ios-auth0-example://auth",
+                authConnectionConfig: [
+                    AuthConnectionConfig(
+                        authConnectionId: "YOUR_AUTH0_CONNECTION_ID",
+                        authConnection: .CUSTOM,
+                        clientId: "YOUR_AUTH0_CLIENT_ID"
+                    )
+                ],
+                whiteLabel: WhiteLabelData(
                 appName: "My App",
                 defaultLanguage: .en,
                 mode: .dark,
@@ -98,19 +98,19 @@ class ViewModel: ObservableObject {
 ```swift
 func loginWithAuth0() {
     Task {
-        let result = try await web3Auth?.login(
-            W3ALoginParams(
-                loginProvider: .JWT,
+        let result = try await web3Auth?.connectTo(
+            loginParams: LoginParams(
+                authConnection: .CUSTOM,
                 extraLoginOptions: ExtraLoginOptions(
                     domain: "https://YOUR_AUTH0_DOMAIN",
-                    verifierIdField: "sub"
+                    userIdField: "sub"
                 ),
                 mfaLevel: .NONE,
                 curve: .SECP256K1
             )
         )
-        // result.privKey  → hex private key
-        // result.userInfo → name, email, profile image, typeOfLogin
+        // result.privateKey → hex private key
+        // result.userInfo   → name, email, profile image, authConnection
     }
 }
 ```
